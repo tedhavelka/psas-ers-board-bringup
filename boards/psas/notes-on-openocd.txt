@@ -1,0 +1,151 @@
+
+
+2025-08-14
+
+Created a board.cmake file which informs part of the Zephyr build system which prgramming "runners" may be used to flash the ERS board.  Yet flashing fails with the message::
+
+	ted@localhost:~/projects/zephyr-project/psas-ers-firmware/samples/hello-world$ west flash
+	-- west flash: rebuilding
+	ninja: no work to do.
+	-- west flash: using runner openocd
+	-- runners.openocd: Flashing file: /home/ted/projects/zephyr-project/psas-ers-firmware/samples/hello-world/build/zephyr/zephyr.hex
+	Open On-Chip Debugger 0.11.0+dev-00728-gb6f95a16c (2024-02-17-23:51)
+	Licensed under GNU GPL v2
+	For bug reports, read
+		http://openocd.org/doc/doxygen/bugs.html
+	Error: Debug Adapter has to be specified, see "adapter driver" command
+
+	FATAL ERROR: command exited with status 1: /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/bin/openocd -s /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts '-c init' '-c targets' -c 'reset init' -c 'flash write_image erase /home/ted/projects/zephyr-project/psas-ers-firmware/samples/hello-world/build/zephyr/zephyr.hex' -c 'reset run' -c shutdown
+
+
+
+
+On a forum at ___ a successful use of openocd begins with lines::
+
+	$ ./openocd.exe -f ./ocd/interface/stlink.cfg -f ./ocd/target/stm32h7x.cfg -s ./ocd  -c "program ./build/MyProject.elf verify reset exit"
+	xPack Open On-Chip Debugger 0.12.0+dev-01312-g18281b0c4-dirty (2023-09-04-22:32)
+	Licensed under GNU GPL v2
+	For bug reports, read
+		http://openocd.org/doc/doxygen/bugs.html
+
+
+Looking for openocd configuration files to see whether these contain the arguemtns to openscd.
+
+File:  zephyr/boards/st/nucleo_f091rc/support/openocd.cfg
+
+  1 source [find board/st_nucleo_f0.cfg]
+  2 
+  3 $_TARGETNAME configure -event gdb-attach {
+  4         echo "Debugger attaching: halting execution"
+  5         reset halt
+  6         gdb_breakpoint_override hard
+  7 }
+  8 
+  9 $_TARGETNAME configure -event gdb-detach {
+ 10         echo "Debugger detaching: resuming execution"
+ 11         resume
+ 12 }
+
+The file referenced above on line 1 is located a few places, the youngest one being:
+
+  /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts/board/st_nucleo_f0.cfg
+
+This file contains:
+
+  1 # This is for all ST NUCLEO with any STM32F0. Known boards at the moment:
+  2 # STM32F030R8
+  3 # http://www.st.com/web/catalog/tools/FM116/SC959/SS1532/LN1847/PF259997
+  4 # NUCLEO-F072RB
+  5 # http://www.st.com/web/catalog/tools/FM116/SC959/SS1532/LN1847/PF259997
+  6 # STM32F091RC
+  7 # http://www.st.com/web/catalog/tools/FM116/SC959/SS1532/LN1847/PF260944
+  8 
+  9 source [find interface/stlink.cfg]
+ 10 
+ 11 transport select hla_swd
+ 12 
+ 13 source [find target/stm32f0x.cfg]
+ 14 
+ 15 reset_config srst_only
+
+File referenced on line 9 above is:
+
+  /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts/interface/stlink.cfg
+
+And contains::
+
+  1 #
+  2 # STMicroelectronics ST-LINK/V1, ST-LINK/V2, ST-LINK/V2-1, STLINK-V3 in-circuit
+  3 # debugger/programmer
+  4 #
+  5 
+  6 adapter driver hla
+  7 hla_layout stlink
+  8 hla_device_desc "ST-LINK"
+  9 hla_vid_pid 0x0483 0x3744 0x0483 0x3748 0x0483 0x374b 0x0483 0x374d 0x0483 0x374e 0x0483 0x374f 0x0483 0x3752 0x0483 0x3753 0x0483 0x3754
+ 10 
+ 11 # Optionally specify the serial number of ST-LINK/V2 usb device.  ST-LINK/V2
+ 12 # devices seem to have serial numbers with unreadable characters.  ST-LINK/V2
+ 13 # firmware version >= V2.J21.S4 recommended to avoid issues with adapter serial
+ 14 # number reset issues.
+ 15 # eg.
+ 16 # adapter serial "\xaa\xbc\x6e\x06\x50\x75\xff\x55\x17\x42\x19\x3f"
+
+
+
+Wrote the following shell script which flashes ERS board::
+
+	#!/bin/bash
+
+	/opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/bin/openocd -f /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts/interface/stlink.cfg -f /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts/target/stm32f0x.cfg -s /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts  '-c init' '-c targets' -c 'reset init' -c 'flash write_image erase /home/ted/projects/zephyr-project/psas-ers-firmware/samples/hello-world/build/zephyr/zephyr.hex' -c 'reset run' -c shutdown
+
+	exit $?
+
+
+The script above flashes the ERS board and gives these messages:
+
+"""
+ted@localhost:~/projects/zephyr-project/psas-ers-firmware/samples/hello-world$ openocd -f /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts/interface/stlink.cfg -f /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts/target/stm32f0x.cfg -c "program ./build/zephyr/zephyr.hex verify reset exit"
+Open On-Chip Debugger 0.11.0-rc2+dev-00002-g427552c07-dirty (2021-01-30-10:36)
+Licensed under GNU GPL v2
+For bug reports, read
+	http://openocd.org/doc/doxygen/bugs.html
+Warn : ignoring extra IDs in hla_vid_pid (maximum is 8 pairs)
+Info : auto-selecting first available session transport "hla_swd". To override use 'transport select <transport>'.
+Info : The selected transport took over low-level target control. The results might differ compared to plain JTAG/SWD
+Info : clock speed 1000 kHz
+Info : STLINK V3J8M3B5S1 (API v3) VID:PID 0483:374F
+Info : Target voltage: 3.323816
+Info : stm32f0x.cpu: hardware has 4 breakpoints, 2 watchpoints
+Info : starting gdb server for stm32f0x.cpu on 3333
+Info : Listening on port 3333 for gdb connections
+target halted due to debug-request, current mode: Thread 
+xPSR: 0xc1000000 pc: 0x08000190 msp: 0x20000200
+** Programming Started **
+Info : device id = 0x10006442
+Info : flash size = 256kbytes
+** Programming Finished **
+** Verify Started **
+** Verified OK **
+** Resetting Target **
+shutdown command invoked
+"""
+
+
+^^^ This manner of calling openocd appears to start a gdb server and halt the application.  Not sure why this is happening, as the two files passed as arguments following each -f option do not refer to gdb or debbuging in any obvious way.  The ChibioOS based ERS app is flashed by invoking its makefile with `make write`, which executes::
+
+  $ ted@localhost:~/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware$ make write
+  openocd -f toolchain/oocd.cfg -c "program ./build/recovery-firmware.hex verify reset exit"
+
+Contents of /home/ted/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware/toolchain/oocd.cfg::
+
+  1 #
+  2 #
+  3 # for use with STLINK V2 SWD programmer
+  4 #
+  5 
+  6 source [find interface/stlink.cfg]
+  7 transport select hla_swd
+  8 source [find target/stm32f0x.cfg]
+
+

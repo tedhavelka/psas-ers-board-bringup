@@ -1,0 +1,55 @@
+
+
+
+(1) Our custom board is not found without a [board_name].yml file.  Created this file, it contains::
+
+board:
+  name: ers_v3p1
+  vendor: psas
+  socs:
+    - name: stm32f091xc
+
+
+(2) We need an SoC name expressed in the board.yml file from (1)
+
+/zephyr/soc/st/stm32$ ls -l *f0*
+total 72
+-rw-rw-r-- 1 ted ted  412 Jul  7 23:10 CMakeLists.txt
+-rw-rw-r-- 1 ted ted  309 Jul  7 23:10 Kconfig
+-rw-rw-r-- 1 ted ted  438 Jul  7 23:10 Kconfig.defconfig
+-rw-rw-r-- 1 ted ted  173 Jul  7 23:10 Kconfig.defconfig.stm32f030x4
+-rw-rw-r-- 1 ted ted  179 Jul  7 23:10 Kconfig.defconfig.stm32f030x6
+-rw-rw-r-- 1 ted ted  190 Jul  7 23:10 Kconfig.defconfig.stm32f030x8
+-rw-rw-r-- 1 ted ted  169 Jul  7 23:10 Kconfig.defconfig.stm32f030xc
+-rw-rw-r-- 1 ted ted  232 Jul  7 23:10 Kconfig.defconfig.stm32f031x6
+-rw-rw-r-- 1 ted ted  191 Jul  7 23:10 Kconfig.defconfig.stm32f042x6
+-rw-rw-r-- 1 ted ted  184 Jul  7 23:10 Kconfig.defconfig.stm32f051x8
+-rw-rw-r-- 1 ted ted  185 Jul  7 23:10 Kconfig.defconfig.stm32f070xb
+-rw-rw-r-- 1 ted ted  224 Jul  7 23:10 Kconfig.defconfig.stm32f072xx
+-rw-rw-r-- 1 ted ted  194 Jul  7 23:10 Kconfig.defconfig.stm32f091xc  <-- guessed this as SoC name for nucleo_f091rc dev board
+-rw-rw-r-- 1 ted ted  196 Jul  7 23:10 Kconfig.defconfig.stm32f098xx
+-rw-rw-r-- 1 ted ted 1500 Jul  7 23:10 Kconfig.soc
+-rw-rw-r-- 1 ted ted 2079 Jul  7 23:10 soc.c
+-rw-rw-r-- 1 ted ted  599 Jul  7 23:10 soc.h
+-rw-rw-r-- 1 ted ted  342 Jul  7 23:10 sram_vector_table.ld
+
+
+(3) Our primary PSAS board file needs to express a clock frequency.  Device tree compiler or related build tools say
+"devicetree error: 'clock-frequency' is marked as required in 'properties:' in /home/ted/projects/zephyr-project/zephyr/dts/bindings/clock/st,stm32f0-rcc.yaml, but does not appear in <Node /soc/rcc@40021000 in '/home/ted/projects/zephyr-project/zephyr/misc/empty_file.c'>"
+
+Per file:///home/ted/docs/datasheets/stmicro/stm32f091cc.pdf the address 40021000 contains MCU registers to configure the Reset and Clock Controller.
+
+File /home/ted/projects/zephyr-project/zephyr/dts/bindings/clock/st,stm32f0-rcc.yaml named in the above build error message references file "./dts/bindings/clock/st,stm32-rcc.yaml"
+
+
+(4) We're missing a Kconfig file:
+"""
+Parsing /home/ted/projects/zephyr-project/zephyr/Kconfig
+Loaded configuration '/home/ted/projects/zephyr-project/psas-ers-firmware/samples/hello-world/prj.conf'
+Configuration saved to '/home/ted/projects/zephyr-project/psas-ers-firmware/samples/hello-world/build/zephyr/.config'
+Kconfig header saved to '/home/ted/projects/zephyr-project/psas-ers-firmware/samples/hello-world/build/zephyr/include/generated/zephyr/autoconf.h'
+CMake Error at /home/ted/projects/zephyr-project/zephyr/cmake/modules/arch.cmake:36 (message):
+  ARCH not defined.  Check that BOARD=ers_v3p1, is selecting an appropriate
+  SoC in Kconfig, SoC=, and that the SoC is selecting the correct
+  architecture.
+"""
