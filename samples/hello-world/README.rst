@@ -25,6 +25,10 @@ To build for PSAS Electromechanical Recovery System (ERS) board::
 
   $ west build -b ers-v3p1 -p always -- -DBOARD_ROOT=../..
 
+To build for Kconfig interactive review and editing tool::
+
+  $ west build -b ers-v3p1 -p always -t menuconfig -- -DBOARD_ROOT=../..
+
 To build for another board, change "qemu_x86" above to that board's name.
 
 Sample Output
