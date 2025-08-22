@@ -1,0 +1,35 @@
+2025-08-10
+
+Excerpt from https://docs.google.com/document/d/1DnytDlZa1X-BaIqlIBrfcuedKocKrCpTfgMspk0twxI/edit?tab=t.0#heading=h.yycwig6l5oeu
+
+Pin Configuration
+Shared
+!UMB_ON (PA8 = GPIO input)
+BATT_READ (PB0 = analog input ADC_IN8)
+Buzzer (PB15 = GPIO output low / PWM)
+SERIAL OUT (PA2 = UART2_TX @ 115200 bps 8N1)
+SERIAL IN (PA3 = UART2_RX @ 115200 bps 8N1)
+CAN_TX (PA12 = CAN TXD)
+CAN_RX (PA11 = CAN_RX)
+CAN_SHDN (PA10 = GPIO output low)
+CAN_SLIENT (PA9 = GPIO output low)
+!MOTOR_PS (PB6 = GPIO output low)
+Everything else
+GPIO input with pulldown enabled
+
+Sender PCB
+ISO_DROGUE (PA5 = GPIO input)
+ISO_MAIN  (PA6 = GPIO input)
+ROCKET_READY (PA7 = GPIO output low)
+
+ERS PCBs
+DEPLOY1 (PB4 = GPIO output low)
+DEPLOY2 (PB5 = GPIO output low)
+!MOTOR_FAILA (PB7 = GPIO input)
+MOTOR_ILIM (PA4 = DAC output)
+MOTOR_ISENSE (PB1 = Analog input ADC_IN9)
+HALL1 (PA0 = Analog input ADC_IN0)
+HALL2 (PA1 = Analog input ADC_IN1)
+
+
+
