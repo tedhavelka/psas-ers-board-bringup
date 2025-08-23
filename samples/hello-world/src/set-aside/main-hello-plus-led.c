@@ -10,12 +10,12 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 
-#if !DT_NODE_EXISTS(DT_NODELABEL(not_umb_on))
+#if !DT_NODE_EXISTS(DT_NODELABEL(led_green))
 #error "Overlay for !umb_on node not properly defined."
 #endif
 
-static const struct gpio_dt_spec not_umb_on =
-	GPIO_DT_SPEC_GET_OR(DT_NODELABEL(not_umb_on), gpios, {0});
+static const struct gpio_dt_spec led_green =
+	GPIO_DT_SPEC_GET_OR(DT_NODELABEL(led_green), gpios, {0});
 
 int main(void)
 {
@@ -23,7 +23,7 @@ int main(void)
 	bool toggle_led_ready = false;
 	int32_t rc = 0;
 
-	if (!gpio_is_ready_dt(&not_umb_on))
+	if (!gpio_is_ready_dt(&led_green))
 	{
 		printf("NOT_UMB_ON signal out GPIO is not ready.\n");
 		// return 0;
@@ -35,13 +35,13 @@ int main(void)
 
 	if (toggle_led_ready)
 	{ 
-		printk("main.c configurinng GPIO for not_umb_on . . .");
-		rc = gpio_pin_configure_dt(&not_umb_on, GPIO_OUTPUT_INACTIVE);
+		printk("main.c configurinng GPIO for led_green . . .");
+		rc = gpio_pin_configure_dt(&led_green, GPIO_OUTPUT_INACTIVE);
 	}
 
 	if (rc)
 	{
-		printk("Failed to configure GPIO for not_umb_on, err %d", rc);
+		printk("Failed to configure GPIO for led_green, err %d", rc);
 		toggle_led_ready = false;
 	}
 
@@ -55,11 +55,11 @@ int main(void)
 		{
 			if (loop_count % 2)
 			{
-				rc = gpio_pin_set_dt(&not_umb_on, 1);
+				rc = gpio_pin_set_dt(&led_green, 1);
 			}
 			else
 			{
-				rc = gpio_pin_set_dt(&not_umb_on, 0);
+				rc = gpio_pin_set_dt(&led_green, 0);
 			}
 
 			if (rc)

@@ -10,9 +10,12 @@
 
 int main(void)
 {
+	static uint32_t loop_count = 0;
+
 	while (1)
 	{
-		printk("Hello World! %s\n", CONFIG_BOARD_TARGET);
+		loop_count++;
+		printk("Hello World! %s iter %u\n", CONFIG_BOARD_TARGET, loop_count);
 		k_msleep(1000);
 	}
 
