@@ -1,0 +1,56 @@
+
+Debugging session open on ers-v3p1 board, got a backtrace::
+
+ted@localhost:~/projects/zephyr-project/psas-ers-board-bringup/samples/hello-world$ arm-none-eabi-gdb build/zephyr/zephyr.elf
+GNU gdb (Ubuntu 12.1-0ubuntu1~22.04.2) 12.1
+Copyright (C) 2022 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "x86_64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from build/zephyr/zephyr.elf...
+(gdb) target remote localhost:3333
+Remote debugging using localhost:3333
+LL_RCC_HSE_IsReady () at /home/ted/projects/zephyr-project/modules/hal/stm32/stm32cube/stm32f0xx/drivers/include/stm32f0xx_ll_rcc.h:730
+730	  return (READ_BIT(RCC->CR, RCC_CR_HSERDY) == (RCC_CR_HSERDY));
+(gdb) bt
+#0  LL_RCC_HSE_IsReady () at /home/ted/projects/zephyr-project/modules/hal/stm32/stm32cube/stm32f0xx/drivers/include/stm32f0xx_ll_rcc.h:730
+#1  set_up_fixed_clock_sources () at /home/ted/projects/zephyr-project/zephyr/drivers/clock_control/clock_stm32_ll_common.c:645
+#2  stm32_clock_control_init (dev=<optimized out>) at /home/ted/projects/zephyr-project/zephyr/drivers/clock_control/clock_stm32_ll_common.c:819
+#3  0x08002f2e in do_device_init (dev=0x80031c8 <__device_dts_ord_8>) at /home/ted/projects/zephyr-project/zephyr/kernel/init.c:318
+#4  0x080017fa in z_sys_init_run_level (level=level@entry=INIT_LEVEL_PRE_KERNEL_1) at /home/ted/projects/zephyr-project/zephyr/kernel/init.c:393
+#5  0x0800196e in z_cstart () at /home/ted/projects/zephyr-project/zephyr/kernel/init.c:815
+#6  0x080029bc in z_prep_c () at /home/ted/projects/zephyr-project/zephyr/arch/arm/core/cortex_m/prep_c.c:220
+#7  0x08000576 in z_arm_reset () at /home/ted/projects/zephyr-project/zephyr/arch/arm/core/cortex_m/reset.S:207
+Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb)
+
+Code is looping forever in "projects/zephyr-project/zephyr/drivers/clock_control/clock_stm32_ll_common.c"::
+
+      637 #if STM32_HSE_TCXO
+      638                 LL_RCC_HSE_EnableTcxo();
+      639 #endif
+      640 #if STM32_HSE_DIV2
+      641                 LL_RCC_HSE_EnableDiv2();
+      642 #endif
+      643                 /* Enable HSE */
+      644                 LL_RCC_HSE_Enable();
+  --> 645                 while (LL_RCC_HSE_IsReady() != 1) {
+      646                 /* Wait for HSE ready */
+      647                 }
+      648                 /* Check if we need to enable HSE clock security system or not */
+      649 #if STM32_HSE_CSS
+      650                 z_arm_nmi_set_handler(HAL_RCC_NMI_IRQHandler);
+      651                 LL_RCC_HSE_EnableCSS();
+      652 #endif /* STM32_HSE_CSS */
+      653         }
+
