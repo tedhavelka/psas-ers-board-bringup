@@ -20,7 +20,7 @@ function flash_only()
 	-c shutdown
 }
 
-function flash_without_openocd_shutdown()
+function flash_and_enter_debugger()
 {
 	/opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/bin/openocd \
 	-f /opt/zephyr-sdk-0.16.5-1/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts/interface/stlink.cfg \
@@ -33,11 +33,32 @@ function flash_without_openocd_shutdown()
 	-c 'reset run'
 }
 
+function flash_with_psas_recovery_board_options()
+{
+	OPENOCD_CONFIG_PATH=/home/ted/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware/toolchain
+	OPENOCD_CONFIG_FILE=oocd.cfg
+        FIRMWARE_IMAGE=/home/ted/projects/zephyr-project/psas-ers-firmware/samples/hello-world/build/zephyr/zephyr.hex
+	openocd \
+        -f ${OPENOCD_CONFIG_PATH}/${OPENOCD_CONFIG_FILE} \
+        -c "program ${FIRMWARE_IMAGE} verify reset exit"
+}
+
+function flash_with_psas_recovery_board_options
+{
+	OPENOCD_CONFIG_PATH=/home/ted/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware/toolchain
+	OPENOCD_CONFIG_FILE=oocd.cfg
+        FIRMWARE_IMAGE=/home/ted/projects/zephyr-project/psas-ers-firmware/samples/hello-world/build/zephyr/zephyr.hex
+	openocd \
+        -f ${OPENOCD_CONFIG_PATH}/${OPENOCD_CONFIG_FILE} \
+        -c "program ${FIRMWARE_IMAGE} verify reset"
+}
+
 function usage()
 {
     echo "Call flash-manually.sh with:"
     echo "'w' to flash (write) an image to hardware"
     echo "'d' to flash and to start debugging server"
+    echo "'psas' to flash using PSAS recovery board openocd invocation"
     echo ""
 }
 
@@ -53,7 +74,12 @@ if [ "$1" == "w" ]; then
     flash_only
 elif [ "$1" == "d" ]; then
     echo "Calling openocd with options to flash, start and maintain a gdb server . . ."
-    flash_without_openocd_shutdown
+    flash_and_enter_debugger
+elif [ "$1" == "psas" ]; then
+    echo "Calling openocd with PSAS options . . ."
+    flash_with_psas_recovery_board_options
+elif [ "$1" == "psas" && "$2" == "d"]; then
+    flash_with_psas_options_and_debug
 else
     usage
 fi
