@@ -3,11 +3,10 @@ sample:
     application
   name: hello world
 common:
-  min_ram: 2
-  min_flash: 16
   tags: introduction
   integration_platforms:
-    - native_sim
+    - nucleo_f091rc
+    - ers-v3p1
   harness: console
   harness_config:
     type: one_line
