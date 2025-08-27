@@ -43,7 +43,7 @@ function flash_with_psas_recovery_board_options()
         -c "program ${FIRMWARE_IMAGE} verify reset exit"
 }
 
-function flash_with_psas_recovery_board_options
+function flash_with_psas_options_and_debug()
 {
 	OPENOCD_CONFIG_PATH=/home/ted/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware/toolchain
 	OPENOCD_CONFIG_FILE=oocd.cfg
@@ -75,10 +75,10 @@ if [ "$1" == "w" ]; then
 elif [ "$1" == "d" ]; then
     echo "Calling openocd with options to flash, start and maintain a gdb server . . ."
     flash_and_enter_debugger
-elif [ "$1" == "psas" ]; then
+elif [[ "$1" == "psas" && $# == 1 ]]; then
     echo "Calling openocd with PSAS options . . ."
     flash_with_psas_recovery_board_options
-elif [ "$1" == "psas" && "$2" == "d"]; then
+elif [[ "$1" == "psas" && "$2" == "d" ]] ; then
     flash_with_psas_options_and_debug
 else
     usage
