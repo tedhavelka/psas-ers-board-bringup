@@ -116,13 +116,6 @@
         status = "okay";
 };
 
-/*
-&clk_hsi {
-        clock-frequency = <DT_FREQ_M(8)>;
-        status = "okay";
-};
-*/
-
 // - DEV 0822 - appears to be needed as clock source in
 // zephyr/drivers/clock_control/clock_stm32_ll_common.c routine set_up_plls()
 &clk_lsi {
@@ -133,8 +126,6 @@
         prediv = <1>;
         mul = <3>;
         clocks = <&clk_hse>;
-//        mul = <6>;
-//        clocks = <&clk_hsi>;
         status = "okay";
 };
 
@@ -173,6 +164,6 @@
 //                storage_partition: partition@3e800 {
 //                        label = "storage";
 //                        reg = <0x0003e800 DT_SIZE_K(6)>;
- //               };
+//                };
         };
 };
