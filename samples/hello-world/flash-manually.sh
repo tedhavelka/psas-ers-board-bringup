@@ -38,8 +38,8 @@
 
 function flash_with_psas_recovery_board_options()
 {
-	OPENOCD_CONFIG_PATH=/home/ted/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware/toolchain
-	OPENOCD_CONFIG_FILE=oocd.cfg
+	# OPENOCD_CONFIG_PATH=/home/ted/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware/toolchain
+	# OPENOCD_CONFIG_FILE=oocd.cfg
         FIRMWARE_IMAGE=${PWD}/build/zephyr/zephyr.hex
 	openocd \
         -f ${OPENOCD_CONFIG_PATH}/${OPENOCD_CONFIG_FILE} \
@@ -48,8 +48,8 @@ function flash_with_psas_recovery_board_options()
 
 function flash_with_psas_options_and_debug()
 {
-	OPENOCD_CONFIG_PATH=/home/ted/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware/toolchain
-	OPENOCD_CONFIG_FILE=oocd.cfg
+	# OPENOCD_CONFIG_PATH=/home/ted/projects/psas/psas-avionics/lv3.1-recovery/controlSystem/RecoveryBoard/firmware/toolchain
+	# OPENOCD_CONFIG_FILE=oocd.cfg
         FIRMWARE_IMAGE=${PWD}/build/zephyr/zephyr.hex
 	openocd \
         -f ${OPENOCD_CONFIG_PATH}/${OPENOCD_CONFIG_FILE} \
@@ -68,6 +68,9 @@ function usage()
 #-----------------------------------------------------------------------
 # - SECTION - starting point akin to int main
 #-----------------------------------------------------------------------
+
+OPENOCD_CONFIG_PATH=../../scripts
+OPENOCD_CONFIG_FILE=oocd.cfg
 
 echo "Zephyr openocd flash wrapper starting"
 echo "current dir is $PWD"
