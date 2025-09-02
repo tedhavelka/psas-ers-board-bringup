@@ -1,7 +1,0 @@
-
-
-When clk_hsi enabled:
-
-(gdb) b /home/ted/projects/zephyr-project/modules/hal/stm32/stm32cube/stm32f0xx/drivers/include/stm32f0xx_ll_rcc.h:766
-
-
