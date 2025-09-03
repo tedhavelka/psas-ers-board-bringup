@@ -20,7 +20,7 @@
 // -------------------
 // Shared
 // [x] !UMB_ON (PA8 = GPIO input)
-// [ ] BATT_READ (PB0 = analog input ADC_IN8)
+// [x] BATT_READ (PB0 = analog input ADC_IN8)          . . . analog input PB0
 // [ ] Buzzer (PB15 = GPIO output low / PWM)
 // [x] SERIAL OUT (PA2 = UART2_TX @ 115200 bps 8N1)
 // [x] SERIAL IN (PA3 = UART2_RX @ 115200 bps 8N1)
@@ -42,9 +42,9 @@
 // [ ] DEPLOY2 (PB5 = GPIO output low)
 // [ ] !MOTOR_FAILA (PB7 = GPIO input)
 // [ ] MOTOR_ILIM (PA4 = DAC output)
-// [ ] MOTOR_ISENSE (PB1 = Analog input ADC_IN9)
-// [ ] HALL1 (PA0 = Analog input ADC_IN0)
-// [ ] HALL2 (PA1 = Analog input ADC_IN1)
+// [?] MOTOR_ISENSE (PB1 = Analog input ADC_IN9)       . . . analog input PB1
+// [x] HALL1 (PA0 = Analog input ADC_IN0)              . . . analog input PA0
+// [x] HALL2 (PA1 = Analog input ADC_IN1)              . . . analog input PA1
 
 // --- EXCERPT END ---
 
@@ -61,10 +61,6 @@
                 zephyr,shell-uart = &usart2;
                 zephyr,sram = &sram0;
                 zephyr,flash = &flash0;
-	};
-
-	aliases {
-                led0 = &led_orange;
 	};
 
 	ers-gpios {
@@ -105,6 +101,10 @@
 		rocket_ready: rocket_ready {
 			gpios = <&gpioa 7 0>;
 		};
+	};
+
+	aliases {
+                led0 = &led_orange;
 	};
 };
 
@@ -166,4 +166,12 @@
 //                        reg = <0x0003e800 DT_SIZE_K(6)>;
 //                };
         };
+};
+
+&adc1 {
+        pinctrl-0 = <&adc_in0_pa0>;
+        pinctrl-names = "default";
+        st,adc-clock-source = <SYNC>;
+        st,adc-prescaler = <4>;
+        status = "okay";
 };
