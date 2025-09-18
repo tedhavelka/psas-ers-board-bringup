@@ -64,12 +64,15 @@
                 zephyr,canbus = &can1;
 	};
 
-	ers-gpios {
-		compatible = "psas,ers-gpios";
-
+	leds {
+		compatible = "gpio-leds";
 		led_orange: led_orange {
 			gpios = <&gpiob 14 0>;
 		};
+	};
+
+	ers-gpios {
+		compatible = "psas,ers-gpios";
 
 		not_umb_on: not_umb_on {
 			gpios = <&gpioa 8 0>;
@@ -120,8 +123,6 @@
 	};
 };
 
-/*
-*/
 &clk_hse {
         /delete-property/ hse-bypass;
         clock-frequency = <DT_FREQ_M(16)>; // ERS board 16MHz crystal

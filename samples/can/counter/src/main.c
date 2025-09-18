@@ -21,7 +21,7 @@
 #define COUNTER_MSG_ID 0x12345
 #define SET_LED 1
 #define RESET_LED 0
-#define SLEEP_TIME K_MSEC(250)
+#define SLEEP_TIME K_MSEC(1500) // originally 250 milliseconds
 
 K_THREAD_STACK_DEFINE(rx_thread_stack, RX_THREAD_STACK_SIZE);
 K_THREAD_STACK_DEFINE(poll_state_stack, STATE_POLL_THREAD_STACK_SIZE);
@@ -239,6 +239,10 @@ int main(void)
 			       ret);
 			led.port = NULL;
 		}
+	}
+	else
+	{
+		printf("- DEV 0916 - During init stage led.port found null!");
 	}
 
 	k_work_init(&state_change_work, state_change_work_handler);
