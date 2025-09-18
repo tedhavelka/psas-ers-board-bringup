@@ -71,8 +71,10 @@
 		};
 	};
 
+// Return to https://michaelangerer.dev/zephyr/2021/12/21/zephyr-basics-gpio.html
 	ers-gpios {
-		compatible = "psas,ers-gpios";
+		compatible = "psas,ers-gpios", "gpio-keys";
+		// compatible = "psas,ers-gpios", "gpio-keys";
 
 		not_umb_on: not_umb_on {
 			gpios = <&gpioa 8 0>;
@@ -94,16 +96,23 @@
 			gpios = <&gpiob 6 0>;
 		};
 
+		rocket_ready: rocket_ready {
+			gpios = <&gpioa 7 0>;
+		};
+	};
+
+	gpio_keys {
+		compatible = "gpio-keys";
 		iso_drogue: iso_drogue {
-			gpios = <&gpioa 5 0>;
+			label = "isolated_drogue_chute";
+			gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
+			zephyr,code = <INPUT_KEY_0>;
 		};
 
 		iso_main: iso_main {
+			label = "isolated_main_chute";
 			gpios = <&gpioa 6 0>;
-		};
-
-		rocket_ready: rocket_ready {
-			gpios = <&gpioa 7 0>;
+			zephyr,code = <INPUT_KEY_1>;
 		};
 	};
 
@@ -118,8 +127,10 @@
         };
 
 	aliases {
-                led0 = &led_orange;
-                pwm-led0 = &pwm_led_orange;
+        	led0 = &led_orange;
+		pwm-led0 = &pwm_led_orange;
+		sw0 = &iso_drogue;
+		sw1 = &iso_main;
 	};
 };
 
