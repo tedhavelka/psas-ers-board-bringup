@@ -1,0 +1,17 @@
+/*
+ * PSAS ERS sample app device tree overlay
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&gpioa {
+        status = "okay";
+};
+
+&gpiob {
+        status = "okay";
+};
+
+&can1 {
+        status = "okay";
+};
