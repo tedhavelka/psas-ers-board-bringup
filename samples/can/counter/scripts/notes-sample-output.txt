@@ -1,0 +1,16 @@
+
+
+*** Booting Zephyr OS build v3.7.1 ***
+Change LED filter ID: 7
+Finished init.
+Counter filter id: 0
+
+
+
+
+uart:~$ Counter received: 0
+Counter received: 1
+Counter received: 2
+Counter received: 3
+Counter received: 4
+

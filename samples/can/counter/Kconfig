@@ -12,4 +12,8 @@ config LOOPBACK_MODE
 	  Set the controller to loopback mode.
 	  This allows testing without a second board.
 
+module = SAMPLE_CAN_COUNTER
+module-str = Sample CAN counter app
+source "subsys/logging/Kconfig.template.log_config"
+
 source "Kconfig.zephyr"
