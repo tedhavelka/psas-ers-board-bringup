@@ -1,0 +1,9 @@
+module = ADC
+module-str = ADC module for ERS firemware
+source "subsys/logging/Kconfig.template.log_config"
+
+module = ERS_ADC
+module-str = ADC module for ERS firemware
+source "subsys/logging/Kconfig.template.log_config"
+
+source "Kconfig.zephyr"
