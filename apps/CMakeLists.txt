@@ -15,5 +15,6 @@ target_include_directories(app PRIVATE
 
 target_sources(app PRIVATE
     src/adc.c
+    src/can.c
     src/main.c
 )

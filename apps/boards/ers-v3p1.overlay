@@ -53,3 +53,7 @@
                 zephyr,resolution = <12>;
         };
 };
+
+&can1 {
+        status = "okay";
+};

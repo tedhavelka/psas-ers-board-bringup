@@ -10,6 +10,7 @@
 #include <zephyr/logging/log.h>
 
 #include <ers-adc.h>
+#include <ers-can.h>
 
 LOG_MODULE_REGISTER(ers_main, LOG_LEVEL_INF);
 
@@ -20,6 +21,9 @@ int main(void)
 
 	rc = adc_init();
 	LOG_INF("adc_init() returns %d", rc);        
+
+	rc = ers_can_init();
+	LOG_INF("ERS CAN module init returns %d", rc);        
 
 	while (1)
 	{
