@@ -27,6 +27,8 @@ LOG_MODULE_REGISTER(ers_adc, CONFIG_ERS_ADC_LOG_LEVEL);
 #define ADC_THREAD_PRIORITY 3
 #define ADC_READ_PERIOD_MS 5000
 
+#undef DEV_ERS_ADC_REGULAR_REPORTING
+
 //----------------------------------------------------------------------
 // - SECTION - file scoped
 //----------------------------------------------------------------------
@@ -87,19 +89,25 @@ void adc_thread_entry(void *arg1, void *arg2, void *arg3)
 #else
 	for (int k = 0; k < 10; k++) {
 #endif
+#if DEV_ERS_ADC_REGULAR_REPORTING
 		LOG_INF("ADC reading[%u]:\n", count++);
+#endif
 		for (size_t i = 0U; i < ARRAY_SIZE(adc_channels); i++) {
 			int32_t val_mv;
 
+#if DEV_ERS_ADC_REGULAR_REPORTING
 			LOG_INF("- %s, channel %d: ",
 			       adc_channels[i].dev->name,
 			       adc_channels[i].channel_id);
+#endif
 
 			(void)adc_sequence_init_dt(&adc_channels[i], &sequence);
 
 			rc = adc_read_dt(&adc_channels[i], &sequence);
 			if (rc < 0) {
-				LOG_ERR("Could not read (%d)\n", rc);
+#if DEV_ERS_ADC_REGULAR_REPORTING
+				LOG_ERR("Could not read ADC channel, error (%d)\n", rc);
+#endif
 				continue;
 			}
 
@@ -113,14 +121,20 @@ void adc_thread_entry(void *arg1, void *arg2, void *arg3)
 			} else {
 				val_mv = (int32_t)buf;
 			}
+#if DEV_ERS_ADC_REGULAR_REPORTING
 			LOG_INF("%"PRId32, val_mv);
+#endif
 			rc = adc_raw_to_millivolts_dt(&adc_channels[i],
 						       &val_mv);
 			/* conversion to mV may not be supported, skip if not */
 			if (rc < 0) {
+#if DEV_ERS_ADC_REGULAR_REPORTING
 				LOG_WRN(" (value in mV not available)\n");
+#endif
 			} else {
+#if DEV_ERS_ADC_REGULAR_REPORTING
 				LOG_INF(" = %"PRId32" mV\n", val_mv);
+#endif
 			}
 		}
 
