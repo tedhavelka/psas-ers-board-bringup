@@ -12,10 +12,6 @@
 
 #include <ers-adc.h>
 #include <ers-can.h>
-// Note ERS shell module, based on Zephyr shell sample app, has its sources
-//  organized in a separate source directory alongside 'src', but ERS shell
-//  module header files are place in the 'include' dir:
-#include <shell-module.h>
 #include <shell-support.h>
 
 LOG_MODULE_REGISTER(ers_main, LOG_LEVEL_INF);
