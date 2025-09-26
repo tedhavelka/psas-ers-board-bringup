@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2020 Libre Solar Technologies GmbH
+ * Copyright (c) 2025 Portland State Aerospace Society
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -58,9 +59,15 @@ K_THREAD_STACK_DEFINE(adc_thread_stack, ADC_THREAD_STACK_SIZE);
 
 int32_t cmd_ers_read_adc_in0(const struct shell *shell)
 {
-	shell_fprintf(shell, SHELL_NORMAL, "stub function for read ADC in0");
+	shell_fprintf(shell, SHELL_NORMAL, "stub function for read ADC in0\n");
         return 0;
 }
+
+// TODO [ ] Add a function which calls an ERS module to store latest ADC
+//   reading using Zephyr atomic access API.
+
+// TODO [ ] Amend the "read ADC all" command to accept a range of channels,
+//   to support the reading of one channel with the same routine.
 
 int32_t cmd_ers_read_adc_all(const struct shell *shell)
 {
