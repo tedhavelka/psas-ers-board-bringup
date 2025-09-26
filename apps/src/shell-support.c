@@ -126,7 +126,7 @@ void shell_support_thread(void *arg1, void *arg2, void *arg3)
 		SHELL_SUBCMD_SET_END
 		);
 
-	SHELL_CMD_REGISTER(ers_commands, &ers_cmds, "ERS commands", NULL);
+	SHELL_CMD_REGISTER(ers, &ers_cmds, "ERS commands", NULL);
 
 	// shell_set_root_cmd("ers_commands");
 }
