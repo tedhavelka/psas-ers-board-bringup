@@ -24,22 +24,23 @@ target_include_directories(app PRIVATE
 
 target_sources(app PRIVATE
     src/adc.c
-    src/keeper.c
     src/can.c
+    src/keeper.c
     src/main.c
+    src/shell-support.c
 )
 
 # Zephyr shell addition to ERS board firmware:
 
-target_sources(app PRIVATE
-    shell-module/src/shell-module.c
-    shell-module/src/test_module.c
-)
+# target_sources(app PRIVATE
+#     shell-module/src/shell-module.c
+#     shell-module/src/test_module.c
+# )
 
-target_sources_ifdef(CONFIG_SHELL_DYNAMIC_CMDS app PRIVATE
-    shell-module/src/dynamic_cmd.c
-)
+# target_sources_ifdef(CONFIG_SHELL_DYNAMIC_CMDS app PRIVATE
+#     shell-module/src/dynamic_cmd.c
+# )
 
-target_sources_ifdef(CONFIG_SHELL_BACKEND_SERIAL app PRIVATE
-    shell-module/src/uart_reinit.c
-)
+# target_sources_ifdef(CONFIG_SHELL_BACKEND_SERIAL app PRIVATE
+#     shell-module/src/uart_reinit.c
+# )

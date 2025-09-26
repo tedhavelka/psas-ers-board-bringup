@@ -1,6 +1,8 @@
 #ifndef ADC_INIT
 #define ADC_INIT
 
+#include <zephyr/shell/shell.h>
+
 int32_t adc_init(void);
 
 int32_t cmd_ers_read_adc_all(const struct shell *shell);

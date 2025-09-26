@@ -195,7 +195,7 @@ void state_change_callback(const struct device *dev, enum can_state state,
 	k_work_submit(work);
 }
 
-int ers_can_init(void)
+int ers_init_can(void)
 {
 	const struct can_filter change_led_filter = {
 		.flags = 0U,
