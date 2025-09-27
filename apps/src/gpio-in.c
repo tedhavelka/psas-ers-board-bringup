@@ -187,9 +187,33 @@ void gpio_in_thread_entry(void *arg1, void *arg2, void *arg3)
         ARG_UNUSED(arg2);
         ARG_UNUSED(arg3);
 
+enum ers_input_signals
+{
+	ERS_SIG_ISO_DROGUE,
+	ERS_SIG_ISO_MAIN,
+	ERS_SIG_NOT_UMB_ON,
+	ERS_SIG_NOT_MOTOR_FAILA,
+	ERS_NUM_GPIO_INPUTS
+};
+
+	uint32_t val[ERS_NUM_GPIO_INPUTS] = {0};
+
 	while (1)
 	{
-		LOG_INF("stub while loop for gpio_in thread");
+		// LOG_INF("gpio_in stub");
+
+		val[ERS_SIG_ISO_DROGUE] = gpio_pin_get_dt(&iso_drogue);
+		val[ERS_SIG_ISO_MAIN] = gpio_pin_get_dt(&iso_main);
+		val[ERS_SIG_NOT_UMB_ON] = gpio_pin_get_dt(&not_umb_on);
+		val[ERS_SIG_NOT_MOTOR_FAILA] = gpio_pin_get_dt(&not_motor_faila);
+
+		LOG_INF("drogue, main, umb, motor_fail: %d, %d, %d, %d",
+			val[ERS_SIG_ISO_DROGUE],
+			val[ERS_SIG_ISO_MAIN],
+			val[ERS_SIG_NOT_UMB_ON],
+			val[ERS_SIG_NOT_MOTOR_FAILA]
+			);
+
 		k_msleep(ERS_GPIO_THREAD_SLEEP_MS);
 	}
 }
