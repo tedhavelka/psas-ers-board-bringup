@@ -44,7 +44,7 @@ print(f"Sent message: {message}")
 
 
 loop_count = 1
-while loop_count < 40:
+while loop_count < 10:
 
   message_id = led_message_id
 
@@ -69,6 +69,30 @@ while loop_count < 40:
   time.sleep(1/4)
 
   data_bytes = [0x00, 0x06]
+  message = can.Message(arbitration_id=message_id, data=data_bytes, is_extended_id=True)
+  bus.send(message)
+  print(f"Sent message: {message}")
+  time.sleep(1/4)
+
+  message_id = 0x700
+
+  data_bytes = [0x55, 0x44, 0x55, 0x44, 0x55, 0x44, 0x55, 0x44]
+  message = can.Message(arbitration_id=message_id, data=data_bytes, is_extended_id=True)
+  bus.send(message)
+  print(f"Sent message: {message}")
+  time.sleep(1/4)
+
+  message_id = 0x710
+
+  data_bytes = [0x55, 0x44, 0x55, 0x44, 0x55, 0x44, 0x55, 0x44]
+  message = can.Message(arbitration_id=message_id, data=data_bytes, is_extended_id=True)
+  bus.send(message)
+  print(f"Sent message: {message}")
+  time.sleep(1/4)
+
+  message_id = 0x720
+
+  data_bytes = [0x55, 0x44, 0x55, 0x44, 0x55, 0x44, 0x55, 0x44]
   message = can.Message(arbitration_id=message_id, data=data_bytes, is_extended_id=True)
   bus.send(message)
   print(f"Sent message: {message}")

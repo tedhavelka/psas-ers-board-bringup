@@ -11,7 +11,7 @@ bitrate = 125000
 bus = can.interface.Bus(channel=channel, interface="slcan", bitrate=bitrate)
 
 # Set a timeout for receiving messages (in seconds)
-timeout = 10
+timeout = 86400 # as found value 10
 end_time = time.time() + timeout
 
 print(f"Listening for CAN messages for {timeout} seconds...")
