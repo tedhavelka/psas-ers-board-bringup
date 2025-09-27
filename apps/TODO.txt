@@ -15,7 +15,7 @@ ERS firmware TODO list:
           [ ] 0x101 acknowledge receipt of message with id 0x100
           [ ] 0x201 acknowledge receipt of message with id 0x200
 
-[ ] In CAN module configure a timer and workqueue task, where this task clears
+[x] In CAN module configure a timer and workqueue task, where this task clears
      an application state flash for "CAN bus ok" when the timer reaches its
      two second timeout.
 

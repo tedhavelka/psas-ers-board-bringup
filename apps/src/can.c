@@ -74,6 +74,25 @@ static struct k_poll_event change_led_events[1] = {
 					&change_led_msgq, 0)
 };
 
+
+
+void my_work_handler(struct k_work *work)
+{
+    /* do the processing that needs to be done periodically */
+    LOG_INF("CAN module timer expired!");
+}
+
+K_WORK_DEFINE(my_work, my_work_handler);
+
+void my_timer_handler(struct k_timer *dummy)
+{
+    k_work_submit(&my_work);
+}
+
+K_TIMER_DEFINE(my_timer, my_timer_handler, NULL);
+
+
+
 //----------------------------------------------------------------------
 // - SECTION - routines
 //----------------------------------------------------------------------
@@ -130,19 +149,14 @@ void rx_thread_entry(void *arg1, void *arg2, void *arg3)
 			continue;
 		}
 
-#if 0
+#if 1
 		if (frame.id == MSG_ID_TELEMETRUM_SENDER) {
-			LOG_INF("RX %X - telemetrum heartbeat", frame.id);
-		}
-
-		if (frame.id == MSG_ID_TELEMETRUM_SENDER) {
-			LOG_INF("RX %X - telemetrum heartbeat", frame.id);
-		}
-
-		if (frame.id == MSG_ID_TELEMETRUM_SENDER) {
+			k_timer_start(&my_timer, K_SECONDS(2), K_SECONDS(2));
 			LOG_INF("RX %X - telemetrum heartbeat", frame.id);
 		}
 #endif
+
+#if 0
 		switch (frame.id)
 		{
 		case MSG_ID_TELEMETRUM_SENDER:
@@ -162,6 +176,7 @@ void rx_thread_entry(void *arg1, void *arg2, void *arg3)
 			break;
 		default:
 		}
+#endif
 	}
 }
 
@@ -262,23 +277,6 @@ void state_change_callback(const struct device *dev, enum can_state state,
 	k_work_submit(work);
 }
 
-// - DEV 0927 BEGIN - add kernel timer to track CAN bus health
-void my_work_handler(struct k_work *work)
-{
-    /* do the processing that needs to be done periodically */
-    LOG_INF("CAN module timer expired!");
-}
-
-K_WORK_DEFINE(my_work, my_work_handler);
-
-void my_timer_handler(struct k_timer *dummy)
-{
-    k_work_submit(&my_work);
-}
-
-K_TIMER_DEFINE(my_timer, my_timer_handler, NULL);
-// - DEV 0927 END -
-
 int32_t ers_init_can(void)
 {
 	int32_t rc = 0;
@@ -313,8 +311,9 @@ int32_t ers_init_can(void)
 		return -EAGAIN;
 	}
 
+// TODO [ ] Replace '2' with symbol to indicate "ERS CAN bus ok" timeout period in seconds:
 /* start a periodic timer that expires once every second */
-	k_timer_start(&my_timer, K_SECONDS(1), K_SECONDS(1));
+	k_timer_start(&my_timer, K_SECONDS(2), K_SECONDS(2));
 
 // TODO [ ] Remove LED related sample code:
 	if (led.port != NULL) {
