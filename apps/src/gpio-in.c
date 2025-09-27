@@ -10,8 +10,9 @@
 #include <inttypes.h>
 
 #include <zephyr/logging/log.h>
-
 LOG_MODULE_REGISTER(gpio_in, LOG_LEVEL_INF);
+
+#include <keeper.h>
 
 //----------------------------------------------------------------------
 // - SECTION - pound defines
@@ -64,6 +65,14 @@ K_THREAD_STACK_DEFINE(gpio_in_thread_stack, GPIO_IN_THREAD_STACK_SIZE);
 
 struct k_thread gpio_in_thread_data;
 
+enum ers_input_signals
+{
+	ERS_SIG_ISO_DROGUE,
+	ERS_SIG_ISO_MAIN,
+	ERS_SIG_NOT_UMB_ON,
+	ERS_SIG_NOT_MOTOR_FAILA,
+	ERS_NUM_GPIO_INPUTS
+};
 
 //----------------------------------------------------------------------
 // - SECTION - routines
@@ -187,16 +196,8 @@ void gpio_in_thread_entry(void *arg1, void *arg2, void *arg3)
         ARG_UNUSED(arg2);
         ARG_UNUSED(arg3);
 
-enum ers_input_signals
-{
-	ERS_SIG_ISO_DROGUE,
-	ERS_SIG_ISO_MAIN,
-	ERS_SIG_NOT_UMB_ON,
-	ERS_SIG_NOT_MOTOR_FAILA,
-	ERS_NUM_GPIO_INPUTS
-};
-
 	uint32_t val[ERS_NUM_GPIO_INPUTS] = {0};
+	int32_t rc = 0;
 
 	while (1)
 	{
@@ -207,12 +208,16 @@ enum ers_input_signals
 		val[ERS_SIG_NOT_UMB_ON] = gpio_pin_get_dt(&not_umb_on);
 		val[ERS_SIG_NOT_MOTOR_FAILA] = gpio_pin_get_dt(&not_motor_faila);
 
-		LOG_INF("drogue, main, umb, motor_fail: %d, %d, %d, %d",
-			val[ERS_SIG_ISO_DROGUE],
-			val[ERS_SIG_ISO_MAIN],
-			val[ERS_SIG_NOT_UMB_ON],
-			val[ERS_SIG_NOT_MOTOR_FAILA]
-			);
+		ek_get_sys_diag_mode(&rc);
+		if (rc > 0)
+		{
+			LOG_INF("drogue, main, umb, motor_fail: %d, %d, %d, %d",
+				val[ERS_SIG_ISO_DROGUE],
+				val[ERS_SIG_ISO_MAIN],
+				val[ERS_SIG_NOT_UMB_ON],
+				val[ERS_SIG_NOT_MOTOR_FAILA]
+				);
+		}
 
 		k_msleep(ERS_GPIO_THREAD_SLEEP_MS);
 	}

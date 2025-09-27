@@ -52,44 +52,69 @@ static atomic_t motor_isense = ATOMIC_INIT(0);
 static atomic_t hall_1 = ATOMIC_INIT(0);
 static atomic_t hall_2 = ATOMIC_INIT(0);
 
+// Support run time toggling of diagnostics which share UART with Zephyr shell:
+static atomic_t ers_diag_flag_fs = ATOMIC_INIT(0);
+
 // GPIO type inputs
 
 void ekset_iso_drogue(const uint32_t value)
 {
-    atomic_set(&iso_drogue, (atomic_val_t)value);
+	atomic_set(&iso_drogue, (atomic_val_t)value);
 }
 
 void ekset_iso_main(const uint32_t value)
 {
-    atomic_set(&iso_main, (atomic_val_t)value);
+	atomic_set(&iso_main, (atomic_val_t)value);
 }
 
 void ekset_not_umb_on(const uint32_t value)
 {
-    atomic_set(&not_umb_on, (atomic_val_t)value);
+	atomic_set(&not_umb_on, (atomic_val_t)value);
 }
 
 void ekset_not_motor_faila(const uint32_t value)
 {
-    atomic_set(&not_umb_on, (atomic_val_t)value);
+	atomic_set(&not_umb_on, (atomic_val_t)value);
 }
 
 void ekget_iso_drogue(uint32_t* value)
 {
-    *value = atomic_get(&iso_drogue);
+	*value = atomic_get(&iso_drogue);
 }
 
 void ekget_iso_main(uint32_t* value)
 {
-    *value = atomic_get(&iso_main);
+	*value = atomic_get(&iso_main);
 }
 
 void ekget_not_unb_on(uint32_t* value)
 {
-    *value = atomic_get(&not_umb_on);
+	*value = atomic_get(&not_umb_on);
 }
 
 void ekget_not_motor_faila(uint32_t* value)
 {
-    *value = atomic_get(&not_motor_faila);
+	*value = atomic_get(&not_motor_faila);
+}
+
+// ERS diagnostics
+
+/**
+ * @brief ERS firmware sends periodic diagnostic and state info over the debug
+ *   UART.  This pair of routines enables and disables this at run time.
+ */
+
+void ek_sys_diag_periodic(void)
+{
+	atomic_set(&ers_diag_flag_fs, (atomic_val_t)true);
+}
+
+void ek_sys_diag_quiet(void)
+{
+	atomic_set(&ers_diag_flag_fs, (atomic_val_t)false);
+}
+
+void ek_get_sys_diag_mode(uint32_t* value)
+{
+	*value = atomic_get(&ers_diag_flag_fs);
 }
