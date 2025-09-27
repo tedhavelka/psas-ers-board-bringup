@@ -12,6 +12,7 @@
 
 #include <ers-adc.h>
 #include <ers-can.h>
+#include <gpio-in.h>
 #include <shell-support.h>
 
 LOG_MODULE_REGISTER(ers_main, LOG_LEVEL_INF);
@@ -21,10 +22,6 @@ LOG_MODULE_REGISTER(ers_main, LOG_LEVEL_INF);
 //----------------------------------------------------------------------
 
 #define ERS_MAIN_LOOP_PERIOD_MS 5000
-
-//----------------------------------------------------------------------
-// - SECTION - file scoped
-//----------------------------------------------------------------------
 
 //----------------------------------------------------------------------
 // - SECTION - routines
@@ -40,26 +37,24 @@ int main(void)
 
 // TODO [ ] Create thread for CAN init routine which entails a `while (1)`
 //  construct.
-	// rc = ers_init_can();
-	// LOG_INF("ERS CAN module init returns %d", rc);
+	rc = ers_init_can();
+	LOG_INF("ERS CAN module init returns %d", rc);
 
-// TODO [ ] Check whether shell-module sources are needed.
-	// rc = shell_module_init();
-	// LOG_INF("Zephyr shell module init returns %d", rc);
-
-	LOG_INF("Initializing ERS specific commands . . .");
         rc = ers_init_shell_support();
-	LOG_INF("M2");
+	LOG_INF("ERS command initialization returns %d", rc);
+
+        rc = ers_init_gpio_in();
+	LOG_INF("GPIO input pin initialization returns %d", rc);
+
+	LOG_INF("main() entering 'while (1)' loop . . .");
 
 	while (1)
 	{
 		loop_count++;
 		LOG_INF("- MARK -");
 
-		rc = dev_test_of_shell_printing_from_app("- DEV 0926 - printing "
-                  "from Zephyr shell programmatically!\n");
-		if (rc != 0)
-                { }
+		// rc = dev_test_of_shell_printing_from_app("- DEV 0926 - printing "
+                //   "from Zephyr shell programmatically!\n");
 
 		k_msleep(ERS_MAIN_LOOP_PERIOD_MS);
 	}
