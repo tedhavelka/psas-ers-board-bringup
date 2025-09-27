@@ -41,9 +41,9 @@ Message based inputs:
 */ 
 
 // GPIO inputs, effectively Boolean
-static atomic_t not_umb_on = ATOMIC_INIT(0);
 static atomic_t iso_drogue = ATOMIC_INIT(0);
 static atomic_t iso_main = ATOMIC_INIT(0);
+static atomic_t not_umb_on = ATOMIC_INIT(0);
 static atomic_t not_motor_faila = ATOMIC_INIT(0);
 
 // analog inputs, typically 12-bit or 16-bit values
@@ -52,7 +52,44 @@ static atomic_t motor_isense = ATOMIC_INIT(0);
 static atomic_t hall_1 = ATOMIC_INIT(0);
 static atomic_t hall_2 = ATOMIC_INIT(0);
 
-void ekset_not_umb_on(uint32_t value)
+// GPIO type inputs
+
+void ekset_iso_drogue(const uint32_t value)
+{
+    atomic_set(&iso_drogue, (atomic_val_t)value);
+}
+
+void ekset_iso_main(const uint32_t value)
+{
+    atomic_set(&iso_main, (atomic_val_t)value);
+}
+
+void ekset_not_umb_on(const uint32_t value)
 {
     atomic_set(&not_umb_on, (atomic_val_t)value);
+}
+
+void ekset_not_motor_faila(const uint32_t value)
+{
+    atomic_set(&not_umb_on, (atomic_val_t)value);
+}
+
+void ekget_iso_drogue(uint32_t* value)
+{
+    *value = atomic_get(&iso_drogue);
+}
+
+void ekget_iso_main(uint32_t* value)
+{
+    *value = atomic_get(&iso_main);
+}
+
+void ekget_not_unb_on(uint32_t* value)
+{
+    *value = atomic_get(&not_umb_on);
+}
+
+void ekget_not_motor_faila(uint32_t* value)
+{
+    *value = atomic_get(&not_motor_faila);
 }
