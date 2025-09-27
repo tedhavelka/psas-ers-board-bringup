@@ -21,6 +21,7 @@
 LOG_MODULE_REGISTER(shell_support, LOG_LEVEL_INF);
 
 #include <ers-adc.h>
+#include <keeper.h>
 
 #define SHELL_SUPPORT_THREAD_STACK_SIZE 512
 #define SHELL_SUPPORT_THREAD_PRIORITY 5
@@ -77,7 +78,8 @@ static int ers_cmd_print_shell_addr(const struct shell *shell, size_t argc, char
 }
 
 /**
- *
+ * @brief A development test looking at how and whether possible to get
+ *   reference to Zephyr shell structure at run time.
  */
 
 int32_t dev_test_of_shell_printing_from_app(const char* message)
@@ -95,6 +97,25 @@ int32_t dev_test_of_shell_printing_from_app(const char* message)
 	return rc;
 }
 
+static int ers_cmd_diag_periodic_on(const struct shell *shell, size_t argc, char *argv[])
+{
+        ARG_UNUSED(shell);
+        ARG_UNUSED(argc);
+        ARG_UNUSED(argv);
+
+	ek_sys_diag_periodic();
+	return 0;
+}
+
+static int ers_cmd_diag_periodic_off(const struct shell *shell, size_t argc, char *argv[])
+{
+        ARG_UNUSED(shell);
+        ARG_UNUSED(argc);
+        ARG_UNUSED(argv);
+
+	ek_sys_diag_quiet();
+	return 0;
+}
 
 void shell_support_thread(void *arg1, void *arg2, void *arg3)
 {
@@ -129,6 +150,19 @@ void shell_support_thread(void *arg1, void *arg2, void *arg3)
 	SHELL_CMD_REGISTER(ers, &ers_cmds, "ERS commands", NULL);
 
 	// shell_set_root_cmd("ers_commands");
+
+	SHELL_STATIC_SUBCMD_SET_CREATE(
+		ers_cmds_diag,
+		SHELL_CMD_ARG(on, NULL,
+			"enable ERS periodic diagnostics",
+			ers_cmd_diag_periodic_on, 0, 0),
+		SHELL_CMD_ARG(off, NULL,
+			"disable ERS periodic diagnostics",
+			ers_cmd_diag_periodic_off, 0, 0),
+		SHELL_SUBCMD_SET_END
+		);
+
+	SHELL_CMD_REGISTER(diag, &ers_cmds_diag, "ERS diagnostics", NULL);
 }
 
 int32_t ers_init_shell_support(void)
