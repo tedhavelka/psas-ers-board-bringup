@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018 Alexander Wachter
+ * Copyright (c) 2025 Portland State Aerospace Society
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -33,7 +34,28 @@ struct k_thread poll_state_thread_data;
 #define COUNTER_MSG_ID 0x12345
 #define SET_LED 1
 #define RESET_LED 0
+
 #define SLEEP_TIME K_MSEC(250) // originally 250 milliseconds
+
+// clang-format off
+#define MSG_ID_TELEMETRUM_SENDER   0x700
+#define MSG_ID_DROGUE_HEARTBEAT    0x710
+#define MSG_ID_MAIN_HEARTBEAT      0x720
+#define MSG_ID_UNLOCK_DROGUE_CHUTE 0x100
+#define MSG_ID_UNLOCK_MAIN_CHUTE   0x200
+// clang-format on
+
+/**
+ * @note CAN frame ids for ERS:  while ERS sender won't listen for
+ *   ERS drogue board CAN heartbeat nor ERS main board heartbeat, we
+ *   include these message ids with the plan that one firmware project
+ *   will include a build time flag to select the ids needed by each of
+ *   three ERS firmwares, which are much more alike than different.
+ */
+
+//----------------------------------------------------------------------
+// - SECTION - file scoped
+//----------------------------------------------------------------------
 
 const struct device *const can_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_canbus));
 struct gpio_dt_spec led = GPIO_DT_SPEC_GET_OR(DT_ALIAS(led0), gpios, {0});
@@ -52,6 +74,10 @@ static struct k_poll_event change_led_events[1] = {
 					&change_led_msgq, 0)
 };
 
+//----------------------------------------------------------------------
+// - SECTION - routines
+//----------------------------------------------------------------------
+
 void tx_irq_callback(const struct device *dev, int error, void *arg)
 {
 	char *sender = (char *)arg;
@@ -64,21 +90,36 @@ void tx_irq_callback(const struct device *dev, int error, void *arg)
 	}
 }
 
-void rx_thread(void *arg1, void *arg2, void *arg3)
+void rx_thread_entry(void *arg1, void *arg2, void *arg3)
 {
 	ARG_UNUSED(arg1);
 	ARG_UNUSED(arg2);
 	ARG_UNUSED(arg3);
-	const struct can_filter filter = {
+
+	const struct can_filter filter_sender_heartbeat = {
 		.flags = CAN_FILTER_IDE,
-		.id = COUNTER_MSG_ID,
+		.id = MSG_ID_TELEMETRUM_SENDER,
 		.mask = CAN_EXT_ID_MASK
 	};
+
+	const struct can_filter filter_drogue_heartbeat = {
+		.flags = CAN_FILTER_IDE,
+		.id = MSG_ID_DROGUE_HEARTBEAT,
+		.mask = CAN_EXT_ID_MASK
+	};
+
+	const struct can_filter filter_main_heartbeat = {
+		.flags = CAN_FILTER_IDE,
+		.id = MSG_ID_MAIN_HEARTBEAT,
+		.mask = CAN_EXT_ID_MASK
+	};
+
 	struct can_frame frame;
 	int filter_id;
 
-
-	filter_id = can_add_rx_filter_msgq(can_dev, &counter_msgq, &filter);
+	filter_id = can_add_rx_filter_msgq(can_dev, &counter_msgq, &filter_sender_heartbeat);
+	filter_id = can_add_rx_filter_msgq(can_dev, &counter_msgq, &filter_drogue_heartbeat);
+	filter_id = can_add_rx_filter_msgq(can_dev, &counter_msgq, &filter_main_heartbeat);
 	LOG_INF("Counter filter id: %d\n", filter_id);
 
 	while (1) {
@@ -89,13 +130,38 @@ void rx_thread(void *arg1, void *arg2, void *arg3)
 			continue;
 		}
 
-		if (frame.dlc != 2U) {
-			LOG_ERR("Wrong data length: %u\n", frame.dlc);
-			continue;
+#if 0
+		if (frame.id == MSG_ID_TELEMETRUM_SENDER) {
+			LOG_INF("RX %X - telemetrum heartbeat", frame.id);
 		}
 
-		LOG_INF("Counter received: %u\n",
-		       sys_be16_to_cpu(UNALIGNED_GET((uint16_t *)&frame.data)));
+		if (frame.id == MSG_ID_TELEMETRUM_SENDER) {
+			LOG_INF("RX %X - telemetrum heartbeat", frame.id);
+		}
+
+		if (frame.id == MSG_ID_TELEMETRUM_SENDER) {
+			LOG_INF("RX %X - telemetrum heartbeat", frame.id);
+		}
+#endif
+		switch (frame.id)
+		{
+		case MSG_ID_TELEMETRUM_SENDER:
+			LOG_INF("RX %X - telemetrum heartbeat", frame.id);
+			break;
+		case MSG_ID_DROGUE_HEARTBEAT:
+			LOG_INF("RX %X - drogue chute heartbeat", frame.id);
+			break;
+		case MSG_ID_MAIN_HEARTBEAT:
+			LOG_INF("RX %X - main chute heartbeat", frame.id);
+			break;
+		case MSG_ID_UNLOCK_DROGUE_CHUTE:
+			LOG_INF("RX %X - unlock drogue chute", frame.id);
+			break;
+		case MSG_ID_UNLOCK_MAIN_CHUTE:
+			LOG_INF("RX %X - unlock main chute", frame.id);
+			break;
+		default:
+		}
 	}
 }
 
@@ -196,31 +262,39 @@ void state_change_callback(const struct device *dev, enum can_state state,
 	k_work_submit(work);
 }
 
-int ers_init_can(void)
+// - DEV 0927 BEGIN - add kernel timer to track CAN bus health
+void my_work_handler(struct k_work *work)
 {
+    /* do the processing that needs to be done periodically */
+    LOG_INF("CAN module timer expired!");
+}
+
+K_WORK_DEFINE(my_work, my_work_handler);
+
+void my_timer_handler(struct k_timer *dummy)
+{
+    k_work_submit(&my_work);
+}
+
+K_TIMER_DEFINE(my_timer, my_timer_handler, NULL);
+// - DEV 0927 END -
+
+int32_t ers_init_can(void)
+{
+	int32_t rc = 0;
+
 	const struct can_filter change_led_filter = {
 		.flags = 0U,
 		.id = LED_MSG_ID,
 		.mask = CAN_STD_ID_MASK
 	};
-	struct can_frame change_led_frame = {
-		.flags = 0,
-		.id = LED_MSG_ID,
-		.dlc = 1
-	};
-	struct can_frame counter_frame = {
-		.flags = CAN_FRAME_IDE,
-		.id = COUNTER_MSG_ID,
-		.dlc = 2
-	};
-	uint8_t toggle = 1;
-	uint16_t counter = 0;
+
 	k_tid_t rx_tid, get_state_tid;
 	int ret;
 
 	if (!device_is_ready(can_dev)) {
 		LOG_ERR("CAN: Device %s not ready.\n", can_dev->name);
-		return 0;
+		return -ENODEV;
 	}
 
 // TODO [ ] Learn how to set CAN bus bit rate in Zephyr app.  Following API
@@ -236,9 +310,13 @@ int ers_init_can(void)
 	ret = can_start(can_dev);
 	if (ret != 0) {
 		LOG_ERR("Error starting CAN controller [%d]", ret);
-		return 0;
+		return -EAGAIN;
 	}
 
+/* start a periodic timer that expires once every second */
+	k_timer_start(&my_timer, K_SECONDS(1), K_SECONDS(1));
+
+// TODO [ ] Remove LED related sample code:
 	if (led.port != NULL) {
 		if (!gpio_is_ready_dt(&led)) {
 			LOG_ERR("LED: Device %s not ready.\n",
@@ -277,7 +355,7 @@ int ers_init_can(void)
 
 	rx_tid = k_thread_create(&rx_thread_data, rx_thread_stack,
 				 K_THREAD_STACK_SIZEOF(rx_thread_stack),
-				 rx_thread, NULL, NULL, NULL,
+				 rx_thread_entry, NULL, NULL, NULL,
 				 RX_THREAD_PRIORITY, 0, K_NO_WAIT);
 	if (!rx_tid) {
 		LOG_ERR("ERROR spawning rx thread\n");
@@ -314,4 +392,6 @@ int ers_init_can(void)
 		k_sleep(SLEEP_TIME);
 	}
 #endif
+
+	return rc;
 }
