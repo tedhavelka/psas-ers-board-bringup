@@ -13,6 +13,7 @@
 #include <ers-adc.h>
 #include <ers-can.h>
 #include <gpio-in.h>
+#include <keeper.h>
 #include <shell-support.h>
 
 LOG_MODULE_REGISTER(ers_main, LOG_LEVEL_INF);
@@ -51,11 +52,11 @@ int main(void)
 	while (1)
 	{
 		loop_count++;
-		LOG_INF("- MARK -");
-
-		// rc = dev_test_of_shell_printing_from_app("- DEV 0926 - printing "
-                //   "from Zephyr shell programmatically!\n");
-
+		ek_get_sys_diag_mode(&rc);
+		if (rc > 0)
+		{
+			LOG_INF("- MARK -");
+		}
 		k_msleep(ERS_MAIN_LOOP_PERIOD_MS);
 	}
 
