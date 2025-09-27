@@ -217,53 +217,13 @@ int ers_init_can(void)
 	k_tid_t rx_tid, get_state_tid;
 	int ret;
 
-// - DEV 0918 BEGIN -
-// #define ISO_DROGUE DT_NODELABEL(iso_drogue)
-
-#define SW0_NODE        DT_ALIAS(sw0)
-#if !DT_NODE_HAS_STATUS(SW0_NODE, okay)
-#error "Unsupported board: sw0 devicetree alias is not defined"
-#endif
-static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios,
-                                                              {0});
-        if (!gpio_is_ready_dt(&button)) {
-                printk("Error: button device %s is not ready\n",
-                       button.port->name);
-                return 0;
-        }
-
-        ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
-        if (ret != 0) {
-                printk("Error %d: failed to configure %s pin %d\n",
-                       ret, button.port->name, button.pin);
-                return 0;
-        }
-
-        ret = gpio_pin_interrupt_configure_dt(&button,
-                                              GPIO_INT_EDGE_TO_ACTIVE);
-        if (ret != 0) {
-                printk("Error %d: failed to configure interrupt on %s pin %d\n",
-                        ret, button.port->name, button.pin);
-                return 0;
-        }
-
-// - DEV 0918 END -
-
 	if (!device_is_ready(can_dev)) {
 		printf("CAN: Device %s not ready.\n", can_dev->name);
 		return 0;
 	}
 
-#if 0
-#ifdef CONFIG_LOOPBACK_MODE
-	ret = can_set_mode(can_dev, CAN_MODE_LOOPBACK);
-	if (ret != 0) {
-		printf("Error setting CAN mode [%d]", ret);
-		return 0;
-	}
-#endif
-#endif
-
+// TODO [ ] Learn how to set CAN bus bit rate in Zephyr app.  Following API
+//   did not seem to be available:
 #if 0
 	ret = can_set_bitrate_data(can_dev, 500000);
 	if (ret != 0) {
@@ -336,6 +296,7 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios,
 
 	printf("Finished init.\n");
 
+#if 0
 	while (1) {
 		change_led_frame.data[0] = toggle++ & 0x01 ? SET_LED : RESET_LED;
 		/* This sending call is none blocking. */
@@ -351,4 +312,5 @@ static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(SW0_NODE, gpios,
 		can_send(can_dev, &counter_frame, K_MSEC(100), NULL, NULL);
 		k_sleep(SLEEP_TIME);
 	}
+#endif
 }
