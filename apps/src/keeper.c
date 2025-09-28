@@ -56,6 +56,7 @@ static atomic_t hall_2 = ATOMIC_INIT(0);
 static atomic_t ers_diag_flag_fs = ATOMIC_INIT(0);
 
 // GPIO type inputs
+// "set" APIs
 
 void ekset_iso_drogue(const uint32_t value)
 {
@@ -77,6 +78,8 @@ void ekset_not_motor_faila(const uint32_t value)
 	atomic_set(&not_umb_on, (atomic_val_t)value);
 }
 
+// "get" APIs
+
 void ekget_iso_drogue(uint32_t* value)
 {
 	*value = atomic_get(&iso_drogue);
@@ -97,7 +100,57 @@ void ekget_not_motor_faila(uint32_t* value)
 	*value = atomic_get(&not_motor_faila);
 }
 
-// ERS diagnostics
+//----------------------------------------------------------------------
+// - SECTION - ERS analog inputs
+//----------------------------------------------------------------------
+
+// "set" APIs
+
+void ekset_batt_read(const uint32_t value)
+{
+	atomic_set(&batt_read, (atomic_val_t)value);
+}
+
+void ekset_motor_isense(const uint32_t value)
+{
+	atomic_set(&motor_isense, (atomic_val_t)value);
+}
+
+void ekset_hall_1(const uint32_t value)
+{
+	atomic_set(&hall_1, (atomic_val_t)value);
+}
+
+void ekset_hall_2(const uint32_t value)
+{
+	atomic_set(&hall_2, (atomic_val_t)value);
+}
+
+// "get" APIs
+
+void ekget_batt_read(uint32_t* value)
+{
+	*value = atomic_get(&batt_read);
+}
+
+void ekget_motor_isense(uint32_t* value)
+{
+	*value = atomic_get(&motor_isense);
+}
+
+void ekget_hall_1(uint32_t* value)
+{
+	*value = atomic_get(&hall_1);
+}
+
+void ekget_hall_2(uint32_t* value)
+{
+	*value = atomic_get(&hall_2);
+}
+
+//----------------------------------------------------------------------
+// - SECTION - ERS diagnostics
+//----------------------------------------------------------------------
 
 /**
  * @brief ERS firmware sends periodic diagnostic and state info over the debug

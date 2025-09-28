@@ -11,6 +11,16 @@ void ekget_iso_main(uint32_t* value);
 void ekget_not_umb_on(uint32_t* value);
 void ekget_not_motor_faila(uint32_t* value);
 
+void ekset_batt_read(const uint32_t value);
+void ekset_motor_isense(const uint32_t value);
+void ekset_hall_1(const uint32_t value);
+void ekset_hall_2(const uint32_t value);
+
+void ekget_batt_read(uint32_t* value);
+void ekget_motor_isense(uint32_t* value);
+void ekget_hall_1(uint32_t* value);
+void ekget_hall_2(uint32_t* value);
+
 void ek_sys_diag_periodic(void);
 void ek_sys_diag_quiet(void);
 void ek_get_sys_diag_mode(uint32_t* value);
