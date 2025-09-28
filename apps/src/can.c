@@ -98,8 +98,6 @@ enum ers_state_var_indeces {
 
 static uint8_t ers_state_vars_fs[IDX_STATE_VAR_LAST_ELEMENT] = {0};
 
-
-
 //----------------------------------------------------------------------
 // - SECTION - routines
 //----------------------------------------------------------------------
@@ -143,7 +141,7 @@ void tx_irq_callback(const struct device *dev, int error, void *arg)
 
 void prep_and_send_status_frame_work_handler(struct k_work *work)
 {
-	LOG_INF("preparing status message, data length is %d", sizeof(ers_state_vars_fs));
+	// LOG_INF("preparing status message, data length is %d", sizeof(ers_state_vars_fs));
 
         struct can_frame ers_status_frame = {
                 .flags = 0,
@@ -289,6 +287,8 @@ char *state_to_str(enum can_state state)
 		return "unknown";
 	}
 }
+
+// TODO [ ] Remove poll state thread, it is part of original CAN sample app:
 
 void poll_state_thread(void *unused1, void *unused2, void *unused3)
 {
