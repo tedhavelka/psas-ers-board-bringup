@@ -41,7 +41,7 @@
 // [ ] DEPLOY1 (PB4 = GPIO output low)
 // [ ] DEPLOY2 (PB5 = GPIO output low)
 // [ ] !MOTOR_FAILA (PB7 = GPIO input)
-// [ ] MOTOR_ILIM (PA4 = DAC output)
+// [x] MOTOR_ILIM (PA4 = DAC output)
 // [?] MOTOR_ISENSE (PB1 = Analog input ADC_IN9)       . . . analog input PB1
 // [x] HALL1 (PA0 = Analog input ADC_IN0)              . . . analog input PA0
 // [x] HALL2 (PA1 = Analog input ADC_IN1)              . . . analog input PA1
@@ -203,6 +203,12 @@
         st,adc-clock-source = <SYNC>;
         st,adc-prescaler = <4>;
         status = "okay";
+};
+
+&dac1 {
+        status = "okay";
+        pinctrl-0 = <&dac_out1_pa4>;
+        pinctrl-names = "default";
 };
 
 &timers15 {
