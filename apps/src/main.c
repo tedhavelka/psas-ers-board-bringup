@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2012-2014 Wind River Systems, Inc.
  * Copyright (c) 2025 Portland State Aerospace Society
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -12,6 +11,7 @@
 
 #include <ers-adc.h>
 #include <ers-can.h>
+#include <ers-dac.h>
 #include <gpio-in.h>
 #include <keeper.h>
 #include <shell-support.h>
@@ -34,7 +34,10 @@ int main(void)
 	int32_t rc = 0;
 
 	rc = adc_init();
-	LOG_INF("adc_init() returns %d", rc);
+	LOG_INF("ADC init code returns %d", rc);
+
+	rc = ers_init_dac();
+	LOG_INF("DAC init code returns %d", rc);
 
 // TODO [ ] Create thread for CAN init routine which entails a `while (1)`
 //  construct.
