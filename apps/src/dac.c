@@ -35,6 +35,39 @@ static const struct dac_channel_cfg dac_ch_cfg = {
 	.buffered = true
 };
 
+static uint32_t dac_initialized_fs = 0;
+
+// TODO [ ] Implement a mutex for "set DAC" API.  It has a system sleep call
+//   which while brief, is recommended by Zephyr's DAC sample.  While ERS
+//   app is unlikely to have more than one calling point to the DAC set output
+//   API, a mutex would assure that the delay after setting is honored.
+
+int32_t ers_set_dac_output(const uint32_t value)
+{
+// Following two const variables from Zephyr 3.7.1 DAC sample app:
+	const int32_t dac_values = 1U << DAC_RESOLUTION;
+	const int32_t sleep_time = 4096 / dac_values > 0 ? 4096 / dac_values : 1;
+	int32_t rc = 0;
+
+	if (dac_initialized_fs < 1)
+	{
+		LOG_ERR("DAC device not yet initialized, ers_init_dac() called?");
+		return -ENODEV;
+	}
+
+#define DAC_COUNT_HIGHEST_VAL ((1 << DAC_RESOLUTION) - 1)
+	if (value > DAC_COUNT_HIGHEST_VAL)
+	{
+		LOG_ERR("DAC value %u to write too large, 0..%u possible",
+			value, DAC_COUNT_HIGHEST_VAL);
+		return -EINVAL;
+	}
+
+	rc = dac_write_value(dac_dev, DAC_CHANNEL_ID, value);
+	k_sleep(K_MSEC(sleep_time));
+	return rc;
+}
+
 int32_t ers_init_dac(void)
 {
 	int32_t rc = 0;
@@ -51,9 +84,13 @@ int32_t ers_init_dac(void)
 		return -EIO;
 	}
 
+	// Simple way for this tiny module to indicate it is initialized:
+	dac_initialized_fs = 1;
+
 	LOG_INF("Ready to produce signal on DAC channel %d.",
 		DAC_CHANNEL_ID);
 
+	LOG_INF("Per device tree DAC has resolution of %d counts", DAC_RESOLUTION);
 
 	return rc;
 }
