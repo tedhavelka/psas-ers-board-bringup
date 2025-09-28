@@ -18,8 +18,9 @@
 #include <zephyr/shell/shell.h>
 
 #include <zephyr/logging/log.h>
-
 LOG_MODULE_REGISTER(ers_adc, CONFIG_ERS_ADC_LOG_LEVEL);
+
+#include "keeper.h"
 
 //----------------------------------------------------------------------
 // - SECTION - pound defines
@@ -49,9 +50,17 @@ static const struct adc_dt_spec adc_channels[] = {
                  DT_SPEC_AND_COMMA)
 };
 
+// TODO [ ] Compare thread configuration code in can.c with what is here:
 struct k_thread adc_thread_data;
 
 K_THREAD_STACK_DEFINE(adc_thread_stack, ADC_THREAD_STACK_SIZE);
+
+enum ers_analog_signals {
+	ERS_READING_IDX_BATT_READ,
+	ERS_READING_IDX_MOTOR_ISENSE,
+	ERS_READING_IDX_HALL_1,
+	ERS_READING_IDX_HALL_2
+};
 
 //----------------------------------------------------------------------
 // - SECTION - routines
@@ -206,6 +215,23 @@ void adc_thread_entry(void *arg1, void *arg2, void *arg3)
 #endif
                                 continue;
                         }
+
+			// File scoped 'buf' is passed by reference via 'sequence'
+			switch (i)
+			{
+			case ERS_READING_IDX_BATT_READ:
+				ekset_batt_read((uint32_t)buf);
+				break;
+			case ERS_READING_IDX_MOTOR_ISENSE:
+				ekset_motor_isense((uint32_t)buf);
+				break;
+			case ERS_READING_IDX_HALL_1:
+				ekset_hall_1((uint32_t)buf);
+				break;
+			case ERS_READING_IDX_HALL_2:
+				ekset_hall_2((uint32_t)buf);
+				break;
+			}
 
                         /*
                          * If using differential mode, the 16 bit value
