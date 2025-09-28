@@ -28,13 +28,14 @@ ERS firmware TODO list:
      stored as a byte, with an extra byte added to create a CAN frame with data
      length of eight.
 
-[ ] Add DAC module to provide motor current regulation.
+[x] Add DAC module to provide motor current regulation.
 
 [x] Amend gpio_in module to save latest input values in the keeper module.
 
 [x] Amend ADC module to save latest input values in the keeper module.
 
 [ ] Implement an arbiter to act upon current state and gathered data.
+    [x] create an arbiter thread with stub code.
 
 [x] Implement a local way to toggle periodic diagnostics on and off at run time.
 

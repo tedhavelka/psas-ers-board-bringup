@@ -9,6 +9,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include <arbiter.h>
 #include <ers-adc.h>
 #include <ers-can.h>
 #include <ers-dac.h>
@@ -33,6 +34,9 @@ int main(void)
 	static uint32_t loop_count = 0;
 	int32_t rc = 0;
 
+        rc = ers_init_gpio_in();
+	LOG_INF("GPIO input pin initialization returns %d", rc);
+
 	rc = adc_init();
 	LOG_INF("ADC init code returns %d", rc);
 
@@ -47,8 +51,8 @@ int main(void)
         rc = ers_init_shell_support();
 	LOG_INF("ERS command initialization returns %d", rc);
 
-        rc = ers_init_gpio_in();
-	LOG_INF("GPIO input pin initialization returns %d", rc);
+	rc = ers_init_arbiter();
+	LOG_INF("ERS arbitration module init returns %d", rc);
 
 	LOG_INF("main() entering 'while (1)' loop . . .");
 
