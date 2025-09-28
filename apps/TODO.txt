@@ -10,7 +10,7 @@ ERS firmware TODO list:
           [x] 0x100 unlock drogue chute,
           [x] 0x200 unlock main chute
     [ ] TX messages:
-          [ ] 0x710 drogue board status plus heartbeat
+          [x] 0x710 drogue board status plus heartbeat
           [ ] 0x720 main board status plus heartbeat
           [ ] 0x101 acknowledge receipt of message with id 0x100
           [ ] 0x201 acknowledge receipt of message with id 0x200
@@ -19,10 +19,14 @@ ERS firmware TODO list:
      an application state flash for "CAN bus ok" when the timer reaches its
      two second timeout.
 
-[ ] Create an API function to send the ERS board variant's heart CAN frame, one of
+[x] Create an API function to send the ERS board variant's heart CAN frame, one of
      0x700 Sender/Telemetrum ERS board
      0x710 Drogue parachute ERS board
      0x720 Main parachute ERS board
+
+     Note each ERS variant CAN "heartbeat" contains the same seven values, each
+     stored as a byte, with an extra byte added to create a CAN frame with data
+     length of eight.
 
 [ ] Add DAC module to provide motor current regulation.
 

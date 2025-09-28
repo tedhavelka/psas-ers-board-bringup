@@ -8,7 +8,6 @@
 #include <stdio.h>
 
 #include <zephyr/kernel.h>
-// #include <zephyr/sys/printk.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/drivers/gpio.h>
@@ -35,7 +34,15 @@ struct k_thread poll_state_thread_data;
 #define SET_LED 1
 #define RESET_LED 0
 
-#define SLEEP_TIME K_MSEC(250) // originally 250 milliseconds
+#define SLEEP_TIME K_MSEC(250)
+
+/**
+ * @note CAN frame ids for ERS:  while ERS sender won't listen for
+ *   ERS drogue board CAN heartbeat nor ERS main board heartbeat, we
+ *   include these message ids with the plan that one firmware project
+ *   will include a build time flag to select the ids needed by each of
+ *   three ERS firmwares, which are much more alike than different.
+ */
 
 // clang-format off
 #define MSG_ID_TELEMETRUM_SENDER   0x700
@@ -45,13 +52,14 @@ struct k_thread poll_state_thread_data;
 #define MSG_ID_UNLOCK_MAIN_CHUTE   0x200
 // clang-format on
 
-/**
- * @note CAN frame ids for ERS:  while ERS sender won't listen for
- *   ERS drogue board CAN heartbeat nor ERS main board heartbeat, we
- *   include these message ids with the plan that one firmware project
- *   will include a build time flag to select the ids needed by each of
- *   three ERS firmwares, which are much more alike than different.
- */
+// TODO [ ] Come up with some pound defines or similar to select a status
+//  message ID for the ERS firmware variant needed:
+
+// #if ERS_BOARD_VARIANT == ERS_DROGUE_CHUTE_CONTROLLER . . .
+#define MSG_ID_STATUS_AND_HEARTBEAT MSG_ID_DROGUE_HEARTBEAT
+
+#define HEARTBEAT_PERIOD_S 1
+#define CAN_BUS_CHECK_PER_S 2
 
 //----------------------------------------------------------------------
 // - SECTION - file scoped
@@ -65,32 +73,30 @@ struct k_work state_change_work;
 enum can_state current_state;
 struct can_bus_err_cnt current_err_cnt;
 
+// TODO [ ] Review whether both of these message queues needed:
 CAN_MSGQ_DEFINE(change_led_msgq, 2);
 CAN_MSGQ_DEFINE(counter_msgq, 2);
 
+// TODO [ ] Remove this and the code associated with this kernel poll event structure:
 static struct k_poll_event change_led_events[1] = {
 	K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_MSGQ_DATA_AVAILABLE,
 					K_POLL_MODE_NOTIFY_ONLY,
 					&change_led_msgq, 0)
 };
 
+enum ers_state_var_indeces {
+	IDX_TELEMETRUM_STATE,
+	IDX_BATT_READ,
+	IDX_BATT_OK,
+	IDX_SHORE_POW_STATUS,
+	IDX_CAN_BUS_OK,
+	IDX_ERS_STATUS,
+	IDX_ROCKET_READY,
+	IDX_RESERVED,
+	IDX_STATE_VAR_LAST_ELEMENT
+};
 
-
-void my_work_handler(struct k_work *work)
-{
-    /* do the processing that needs to be done periodically */
-    // LOG_INF("CAN module timer expired!");
-    // TODO [ ] Add application state flag to keeper module to hold "CAN bus ok" status
-}
-
-K_WORK_DEFINE(my_work, my_work_handler);
-
-void my_timer_handler(struct k_timer *dummy)
-{
-    k_work_submit(&my_work);
-}
-
-K_TIMER_DEFINE(my_timer, my_timer_handler, NULL);
+static uint8_t ers_state_vars_fs[IDX_STATE_VAR_LAST_ELEMENT] = {0};
 
 
 
@@ -98,17 +104,78 @@ K_TIMER_DEFINE(my_timer, my_timer_handler, NULL);
 // - SECTION - routines
 //----------------------------------------------------------------------
 
+void clear_flag_can_ok_work_handler(struct k_work *work)
+{
+    /* do the processing that needs to be done periodically */
+    // LOG_INF("CAN module timer expired!");
+    // TODO [ ] Add application state flag to keeper module to hold "CAN bus ok" status
+}
+
+K_WORK_DEFINE(clear_flag_can_ok_work, clear_flag_can_ok_work_handler);
+
+void my_timer_handler(struct k_timer *dummy)
+{
+	k_work_submit(&clear_flag_can_ok_work);
+}
+
+K_TIMER_DEFINE(my_timer, my_timer_handler, NULL);
+
+/**
+ * @brief IRQ callback to provide to can_send() API.
+ *
+ * @note Different calls to can_send() may likely need distinct callbacks.
+ *
+ * @note This detail learned from Zephyr sample app, by Alexander Wachter
+ *   from Zephyr 3.7.1, copyright 2018.
+ */
+
 void tx_irq_callback(const struct device *dev, int error, void *arg)
 {
-	char *sender = (char *)arg;
+        char *sender = (char *)arg;
 
-	ARG_UNUSED(dev);
+        ARG_UNUSED(dev);
 
-	if (error != 0) {
-		LOG_INF("Callback! error-code: %d\nSender: %s\n",
-		       error, sender);
-	}
+        if (error != 0) {
+                printf("Callback! error-code: %d\nSender: %s\n",
+                       error, sender);
+        }
 }
+
+void prep_and_send_status_frame_work_handler(struct k_work *work)
+{
+	LOG_INF("preparing status message, data length is %d", sizeof(ers_state_vars_fs));
+
+        struct can_frame ers_status_frame = {
+                .flags = 0,
+                .id = MSG_ID_STATUS_AND_HEARTBEAT,
+                .dlc = sizeof(ers_state_vars_fs)
+        };
+
+	ers_state_vars_fs[IDX_TELEMETRUM_STATE] = 0;
+	ers_state_vars_fs[IDX_BATT_READ] = 0;
+	ers_state_vars_fs[IDX_BATT_OK] = 0;
+	ers_state_vars_fs[IDX_SHORE_POW_STATUS] = 0;
+	ers_state_vars_fs[IDX_CAN_BUS_OK] = 0;
+	ers_state_vars_fs[IDX_ERS_STATUS] = 0;
+	ers_state_vars_fs[IDX_ROCKET_READY] = 0;
+	ers_state_vars_fs[IDX_RESERVED] = 0;
+
+	memcpy(ers_status_frame.data, ers_state_vars_fs, sizeof(ers_state_vars_fs));
+
+	can_send(can_dev, &ers_status_frame, K_FOREVER,
+		 tx_irq_callback,
+		 "ERS status frame");
+}
+
+K_WORK_DEFINE(prep_and_send_status_frame_work, prep_and_send_status_frame_work_handler);
+
+void heartbeat_timer_handler(struct k_timer *dummy)
+{
+	k_work_submit(&prep_and_send_status_frame_work);
+}
+
+K_TIMER_DEFINE(heartbeat_timer, heartbeat_timer_handler, NULL);
+
 
 void rx_thread_entry(void *arg1, void *arg2, void *arg3)
 {
@@ -314,7 +381,9 @@ int32_t ers_init_can(void)
 
 // TODO [ ] Replace '2' with symbol to indicate "ERS CAN bus ok" timeout period in seconds:
 /* start a periodic timer that expires once every second */
-	k_timer_start(&my_timer, K_SECONDS(2), K_SECONDS(2));
+	k_timer_start(&my_timer, K_SECONDS(CAN_BUS_CHECK_PER_S), K_SECONDS(CAN_BUS_CHECK_PER_S));
+
+	k_timer_start(&heartbeat_timer, K_SECONDS(HEARTBEAT_PERIOD_S), K_SECONDS(HEARTBEAT_PERIOD_S));
 
 // TODO [ ] Remove LED related sample code:
 	if (led.port != NULL) {
