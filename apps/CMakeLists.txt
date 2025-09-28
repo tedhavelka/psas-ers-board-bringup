@@ -24,6 +24,7 @@ target_include_directories(app PRIVATE
 
 target_sources(app PRIVATE
     src/adc.c
+    src/arbiter.c
     src/can.c
     src/dac.c
     src/gpio-in.c
