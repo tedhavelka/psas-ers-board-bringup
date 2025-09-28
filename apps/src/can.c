@@ -79,7 +79,8 @@ static struct k_poll_event change_led_events[1] = {
 void my_work_handler(struct k_work *work)
 {
     /* do the processing that needs to be done periodically */
-    LOG_INF("CAN module timer expired!");
+    // LOG_INF("CAN module timer expired!");
+    // TODO [ ] Add application state flag to keeper module to hold "CAN bus ok" status
 }
 
 K_WORK_DEFINE(my_work, my_work_handler);

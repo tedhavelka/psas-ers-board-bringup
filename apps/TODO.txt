@@ -5,7 +5,7 @@ ERS firmware TODO list:
 
 [ ] Implement correct CAN messages, both RX and TX messages.
     Note RX CAN message ids are 0x700, 0x100, 0x200
-    [ ] RX messages:
+    [x] RX messages:
           [x] 0x700 Telemetrum heartbeat
           [x] 0x100 unlock drogue chute,
           [x] 0x200 unlock main chute
@@ -19,17 +19,24 @@ ERS firmware TODO list:
      an application state flash for "CAN bus ok" when the timer reaches its
      two second timeout.
 
-[ ] Create an API to send the ERS board variant's heart CAN frame, one of
+[ ] Create an API function to send the ERS board variant's heart CAN frame, one of
      0x700 Sender/Telemetrum ERS board
      0x710 Drogue parachute ERS board
      0x720 Main parachute ERS board
 
 [ ] Add DAC module to provide motor current regulation.
 
-[ ] Amend gpio_in module to save latest input values in the keeper module.
+[x] Amend gpio_in module to save latest input values in the keeper module.
 
-[ ] Amend ADC module to save latest input values in the keeper module.
+[x] Amend ADC module to save latest input values in the keeper module.
 
 [ ] Implement an arbiter to act upon current state and gathered data.
 
 [x] Implement a local way to toggle periodic diagnostics on and off at run time.
+
+[ ] Add following shell commands from Google doc by Andrew, Theo, Hessah
+    [x] help
+    [ ] state - ERS system state
+    [ ] l - lock ring
+    [ ] u - unlock ring
+    [ ] pos [poll] - report locking ring position
