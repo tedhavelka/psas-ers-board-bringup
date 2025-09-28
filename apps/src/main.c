@@ -56,6 +56,12 @@ int main(void)
 		if (rc > 0)
 		{
 			LOG_INF("- MARK -");
+			uint32_t a, b, c, d;
+			ekget_batt_read(&a);
+			ekget_motor_isense(&b);
+			ekget_hall_1(&c);
+			ekget_hall_2(&d);
+			LOG_INF("batt, motor, hall1, hall2: %u, %u, %u, %u", a, b, c, d);
 		}
 		k_msleep(ERS_MAIN_LOOP_PERIOD_MS);
 	}
