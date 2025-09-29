@@ -28,7 +28,7 @@
 // [x] CAN_RX (PA11 = CAN_RX)
 // [ ] CAN_SHDN (PA10 = GPIO output low)
 // [ ] CAN_SLIENT (PA9 = GPIO output low)
-// [ ] !MOTOR_PS (PB6 = GPIO output low)
+// [x] !MOTOR_PS (PB6 = GPIO output low)
 // Everything else
 // [ ] GPIO input with pulldown enabled
 
@@ -38,8 +38,8 @@
 // [x] ROCKET_READY (PA7 = GPIO output low)
 
 // ERS PCBs
-// [ ] DEPLOY1 (PB4 = GPIO output low)
-// [ ] DEPLOY2 (PB5 = GPIO output low)
+// [x] DEPLOY1 (PB4 = GPIO output low)
+// [x] DEPLOY2 (PB5 = GPIO output low)
 // [ ] !MOTOR_FAILA (PB7 = GPIO input)
 // [x] MOTOR_ILIM (PA4 = DAC output)
 // [?] MOTOR_ISENSE (PB1 = Analog input ADC_IN9)       . . . analog input PB1
@@ -86,6 +86,14 @@
 
 		batt_read: batt_read {
 			gpios = <&gpiob 0 0>;
+		};
+
+		deploy1: deploy1 {
+			gpios = <&gpiob 4 0>;
+		};
+
+		deploy2: deploy2 {
+			gpios = <&gpiob 5 0>;
 		};
 
 		not_motor_ps: not_motor_ps {
@@ -136,6 +144,9 @@
 		sw1 = &iso_main;
 		sw2 = &not_umb_on;
 		sw3 = &not_motor_faila;
+		dout1 = &deploy1;
+		dout2 = &deploy2;
+		dout3 = &not_motor_ps;
 	};
 };
 
