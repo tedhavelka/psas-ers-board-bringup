@@ -13,6 +13,7 @@ LOG_MODULE_REGISTER(arbiter, LOG_LEVEL_INF);
 
 #include <ers-can.h>
 #include <ers-dac.h>
+#include <gpio-in.h>
 #include <keeper.h>
 
 #define ERS_ARBITER_SLEEP_PER_MS 2000
@@ -36,9 +37,20 @@ void arbiter_thread_entry(void *arg1, void *arg2, void *arg3)
         ARG_UNUSED(arg2);
         ARG_UNUSED(arg3);
 
+	static uint32_t loop_count = 0;
+	int32_t rc = 0;
+
 	while (1)
 	{
-		LOG_INF("M3");
+		// LOG_INF("M3");
+		LOG_INF("setting deploy1 GPIO to %d", (loop_count % 2));
+#if 1
+		rc = ers_gpios_set_deploy1(loop_count % 2);
+		LOG_INF("GPIO set returns status %d", rc);
+		rc = ers_gpios_set_deploy2((loop_count + 1) % 2);
+		LOG_INF("GPIO set returns status %d", rc);
+#endif
+		loop_count++;
 		k_msleep(ERS_ARBITER_SLEEP_PER_MS);
 	}
 }

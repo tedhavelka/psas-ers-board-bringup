@@ -39,6 +39,11 @@ ERS firmware TODO list:
 
 [x] Implement a local way to toggle periodic diagnostics on and off at run time.
 
+[ ] Implement APIs to control GPIO output signals
+    [x] deploy1
+    [x] deploy1
+    [x] motor_ps (not tested)
+
 [ ] Add following shell commands from Google doc by Andrew, Theo, Hessah
     [x] help
     [ ] state - ERS system state
