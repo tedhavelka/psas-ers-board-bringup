@@ -28,7 +28,7 @@ Digital:
 Analog:
 
 [x] BATT_READ (PB0 = analog input ADC_IN8)
-[?] MOTOR_ISENSE (PB1 = Analog input ADC_IN9)
+[x] MOTOR_ISENSE (PB1 = Analog input ADC_IN9)
 [x] HALL1 (PA0 = Analog input ADC_IN0)
 [x] HALL2 (PA1 = Analog input ADC_IN1)
 
@@ -51,6 +51,8 @@ static atomic_t batt_read = ATOMIC_INIT(0);
 static atomic_t motor_isense = ATOMIC_INIT(0);
 static atomic_t hall_1 = ATOMIC_INIT(0);
 static atomic_t hall_2 = ATOMIC_INIT(0);
+
+static atomic_t batt_read_dv = ATOMIC_INIT(0);
 
 // Support run time toggling of diagnostics which share UART with Zephyr shell:
 static atomic_t ers_diag_flag_fs = ATOMIC_INIT(0);
@@ -111,6 +113,15 @@ void ekset_batt_read(const uint32_t value)
 	atomic_set(&batt_read, (atomic_val_t)value);
 }
 
+/**
+ * @brief store batter voltage converted to decivolts:
+ */
+
+void ekset_batt_read_dv(const uint32_t value)
+{
+	atomic_set(&batt_read_dv, (atomic_val_t)value);
+}
+
 void ekset_motor_isense(const uint32_t value)
 {
 	atomic_set(&motor_isense, (atomic_val_t)value);
@@ -131,6 +142,11 @@ void ekset_hall_2(const uint32_t value)
 void ekget_batt_read(uint32_t* value)
 {
 	*value = atomic_get(&batt_read);
+}
+
+void ekget_batt_read_dv(uint32_t* value)
+{
+	*value = atomic_get(&batt_read_dv);
 }
 
 void ekget_motor_isense(uint32_t* value)

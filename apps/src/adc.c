@@ -28,7 +28,7 @@ LOG_MODULE_REGISTER(ers_adc, CONFIG_ERS_ADC_LOG_LEVEL);
 
 #define ADC_THREAD_STACK_SIZE 512
 #define ADC_THREAD_PRIORITY 3
-#define ADC_READ_PERIOD_MS 5000
+#define ADC_READ_PERIOD_MS 10
 
 #undef DEV_ERS_ADC_REGULAR_REPORTING
 
@@ -56,10 +56,10 @@ struct k_thread adc_thread_data;
 K_THREAD_STACK_DEFINE(adc_thread_stack, ADC_THREAD_STACK_SIZE);
 
 enum ers_analog_signals {
-	ERS_READING_IDX_BATT_READ,
-	ERS_READING_IDX_MOTOR_ISENSE,
 	ERS_READING_IDX_HALL_1,
-	ERS_READING_IDX_HALL_2
+	ERS_READING_IDX_HALL_2,
+	ERS_READING_IDX_BATT_READ,
+	ERS_READING_IDX_MOTOR_ISENSE
 };
 
 //----------------------------------------------------------------------
@@ -262,6 +262,10 @@ void adc_thread_entry(void *arg1, void *arg2, void *arg3)
 #if DEV_ERS_ADC_REGULAR_REPORTING
                                 LOG_INF(" = %"PRId32" mV\n", val_mv);
 #endif
+				if (i == ERS_READING_IDX_BATT_READ)
+                        	{
+                        		ekset_batt_read_dv(val_mv * 0.01);
+                        	}
                         }
                 }
                 k_sleep(K_MSEC(ADC_READ_PERIOD_MS));
