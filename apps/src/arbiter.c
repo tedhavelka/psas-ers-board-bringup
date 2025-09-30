@@ -43,8 +43,8 @@ void arbiter_thread_entry(void *arg1, void *arg2, void *arg3)
 	while (1)
 	{
 		// LOG_INF("M3");
+#if 0
 		LOG_INF("setting deploy1 GPIO to %d", (loop_count % 2));
-#if 1
 		rc = ers_gpios_set_deploy1(loop_count % 2);
 		LOG_INF("GPIO set returns status %d", rc);
 		rc = ers_gpios_set_deploy2((loop_count + 1) % 2);
