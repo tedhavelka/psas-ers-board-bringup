@@ -23,7 +23,7 @@ LOG_MODULE_REGISTER(ers_main, LOG_LEVEL_INF);
 // - SECTION - pound defines
 //----------------------------------------------------------------------
 
-#define ERS_MAIN_LOOP_PERIOD_MS 5000
+#define ERS_MAIN_LOOP_PERIOD_MS 500
 
 //----------------------------------------------------------------------
 // - SECTION - routines
@@ -63,6 +63,7 @@ int main(void)
 		if (rc > 0)
 		{
 			LOG_INF("- MARK -");
+			// Note appears that a = hall1, b = hall2, c = battery, d = motor_isense
 			uint32_t a, b, c, d;
 			ekget_batt_read(&a);
 			ekget_motor_isense(&b);
