@@ -15,8 +15,9 @@
 #include <zephyr/devicetree.h>
 
 #include <zephyr/logging/log.h>
-
 LOG_MODULE_REGISTER(can_counter, CONFIG_SAMPLE_CAN_COUNTER_LOG_LEVEL);
+
+#include <keeper.h>
 
 #define RX_THREAD_STACK_SIZE 512
 #define RX_THREAD_PRIORITY 2
@@ -141,8 +142,11 @@ void prep_and_send_status_frame_work_handler(struct k_work *work)
                 .dlc = sizeof(ers_state_vars_fs)
         };
 
+	uint32_t battery_voltage = 0;
+	ekget_batt_read_dv(&battery_voltage);
+
 	ers_state_vars_fs[IDX_TELEMETRUM_STATE] = 0;
-	ers_state_vars_fs[IDX_BATT_READ] = 0;
+	ers_state_vars_fs[IDX_BATT_READ] = battery_voltage;
 	ers_state_vars_fs[IDX_BATT_OK] = 0;
 	ers_state_vars_fs[IDX_SHORE_POW_STATUS] = 0;
 	ers_state_vars_fs[IDX_CAN_BUS_OK] = 0;
