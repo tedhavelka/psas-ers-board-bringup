@@ -97,19 +97,18 @@ static uint8_t ers_state_vars_fs[IDX_STATE_VAR_LAST_ELEMENT] = {0};
 
 void clear_flag_can_ok_work_handler(struct k_work *work)
 {
-    /* do the processing that needs to be done periodically */
     // LOG_INF("CAN module timer expired!");
-    // TODO [ ] Add application state flag to keeper module to hold "CAN bus ok" status
+    ekset_can_bus_ok(0);
 }
 
 K_WORK_DEFINE(clear_flag_can_ok_work, clear_flag_can_ok_work_handler);
 
-void my_timer_handler(struct k_timer *dummy)
+void telemetrum_check_timer_handler(struct k_timer *dummy)
 {
 	k_work_submit(&clear_flag_can_ok_work);
 }
 
-K_TIMER_DEFINE(my_timer, my_timer_handler, NULL);
+K_TIMER_DEFINE(telemetrum_check_timer, telemetrum_check_timer_handler, NULL);
 
 /**
  * @brief IRQ callback to provide to can_send() API.
@@ -144,12 +143,14 @@ void prep_and_send_status_frame_work_handler(struct k_work *work)
 
 	uint32_t battery_voltage = 0;
 	ekget_batt_read_dv(&battery_voltage);
+	uint32_t can_bus_ok_flag = 0;
+	ekget_can_bus_ok(&can_bus_ok_flag);
 
 	ers_state_vars_fs[IDX_TELEMETRUM_STATE] = 0;
-	ers_state_vars_fs[IDX_BATT_READ] = battery_voltage;
+	ers_state_vars_fs[IDX_BATT_READ] = (uint8_t)(battery_voltage & 0xFF);
 	ers_state_vars_fs[IDX_BATT_OK] = 0;
 	ers_state_vars_fs[IDX_SHORE_POW_STATUS] = 0;
-	ers_state_vars_fs[IDX_CAN_BUS_OK] = 0;
+	ers_state_vars_fs[IDX_CAN_BUS_OK] = (uint8_t)(can_bus_ok_flag & 0xFF);
 	ers_state_vars_fs[IDX_ERS_STATUS] = 0;
 	ers_state_vars_fs[IDX_ROCKET_READY] = 0;
 	ers_state_vars_fs[IDX_RESERVED] = 0;
@@ -212,8 +213,9 @@ void rx_thread_entry(void *arg1, void *arg2, void *arg3)
 
 #if 1
 		if (frame.id == MSG_ID_TELEMETRUM_SENDER) {
-			k_timer_start(&my_timer, K_SECONDS(2), K_SECONDS(2));
-			LOG_INF("RX %X - telemetrum heartbeat", frame.id);
+			k_timer_start(&telemetrum_check_timer, K_SECONDS(2), K_SECONDS(2));
+			// LOG_INF("RX %X - telemetrum heartbeat", frame.id);
+			ekset_can_bus_ok(1);
 		}
 #endif
 
@@ -285,7 +287,7 @@ int32_t ers_init_can(void)
 		return -EAGAIN;
 	}
 
-	k_timer_start(&my_timer, K_SECONDS(CAN_BUS_CHECK_PER_S), K_SECONDS(CAN_BUS_CHECK_PER_S));
+	k_timer_start(&telemetrum_check_timer, K_SECONDS(CAN_BUS_CHECK_PER_S), K_SECONDS(CAN_BUS_CHECK_PER_S));
 
 	k_timer_start(&heartbeat_timer, K_SECONDS(HEARTBEAT_PERIOD_S), K_SECONDS(HEARTBEAT_PERIOD_S));
 

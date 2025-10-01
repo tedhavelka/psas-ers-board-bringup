@@ -54,8 +54,29 @@ static atomic_t hall_2 = ATOMIC_INIT(0);
 
 static atomic_t batt_read_dv = ATOMIC_INIT(0);
 
+// Off-chip peripherals and system statae
+//
+// [ ] ring status    . . . one of 2 = locked, 1 = between, 0 = unlocked
+// [x] batt_voltage   . . . among analog inputs
+// [ ] batt_ok        . . . a threshold based state
+// [ ] shore_power_ok . . . 1 = shore power detected, 0 = no shore power
+// [ ] can_bus_ok     . . . telemetrum heartbeat received within last two seconds
+// [ ] ready_state    . . . true when (1) battery ok (2) ring locked (3) CAN bus ok
+// [ ] reserved
+// [ ] reserved
+
+static atomic_t ring_status = ATOMIC_INIT(0);
+static atomic_t batt_ok = ATOMIC_INIT(0);
+static atomic_t shore_power_ok = ATOMIC_INIT(0);
+static atomic_t can_bus_ok = ATOMIC_INIT(0);
+static atomic_t ready_state = ATOMIC_INIT(0);
+
 // Support run time toggling of diagnostics which share UART with Zephyr shell:
 static atomic_t ers_diag_flag_fs = ATOMIC_INIT(0);
+
+//----------------------------------------------------------------------
+// - SECTION - routines
+//----------------------------------------------------------------------
 
 // GPIO type inputs
 // "set" APIs
@@ -162,6 +183,64 @@ void ekget_hall_1(uint32_t* value)
 void ekget_hall_2(uint32_t* value)
 {
 	*value = atomic_get(&hall_2);
+}
+
+//----------------------------------------------------------------------
+// - SECTION - Off-chip peripherals and system statae
+//----------------------------------------------------------------------
+
+// "set" APIs
+
+void ekset_ring_status(const uint32_t value)
+{
+	atomic_set(&ring_status, (atomic_val_t)value);
+}
+
+void ekset_batt_ok(const uint32_t value)
+{
+	atomic_set(&batt_ok, (atomic_val_t)value);
+}
+
+void ekset_shore_power_ok(const uint32_t value)
+{
+	atomic_set(&shore_power_ok, (atomic_val_t)value);
+}
+
+void ekset_can_bus_ok(const uint32_t value)
+{
+	atomic_set(&can_bus_ok, (atomic_val_t)value);
+}
+
+void ekset_ready_state(const uint32_t value)
+{
+	atomic_set(&ready_state, (atomic_val_t)value);
+}
+
+// "get" APIs
+
+void ekget_ring_status(uint32_t* value)
+{
+	*value = atomic_get(&ring_status);
+}
+
+void ekget_batt_ok(uint32_t* value)
+{
+	*value = atomic_get(&batt_ok);
+}
+
+void ekget_shore_power_ok(uint32_t* value)
+{
+	*value = atomic_get(&shore_power_ok);
+}
+
+void ekget_can_bus_ok(uint32_t* value)
+{
+	*value = atomic_get(&can_bus_ok);
+}
+
+void ekget_ready_state(uint32_t* value)
+{
+	*value = atomic_get(&ready_state);
 }
 
 //----------------------------------------------------------------------

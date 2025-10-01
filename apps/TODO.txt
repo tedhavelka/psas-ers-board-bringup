@@ -39,14 +39,28 @@ ERS firmware TODO list:
 
 [x] Implement a local way to toggle periodic diagnostics on and off at run time.
 
+[ ] Implement off-chip and system status checking routines
+    [ ] ring status    . . . one of 2 = locked, 1 = between, 0 = unlocked
+    [x] batt_voltage   . . . among analog inputs
+    [ ] batt_ok        . . . a threshold based state
+    [ ] shore_power_ok . . . 1 = shore power detected, 0 = no shore power
+    [x] can_bus_ok     . . . telemetrum heartbeat received within last two seconds
+    [ ] ready_state    . . . true when (1) battery ok (2) ring locked (3) CAN bus ok
+    [ ] reserved
+    [ ] reserved
+
 [ ] Implement APIs to control GPIO output signals
     [x] deploy1
     [x] deploy1
     [x] motor_ps (not tested)
 
-[ ] Add following shell commands from Google doc by Andrew, Theo, Hessah
+[ ] Add APIs to lock and to unlock rocket parachute section ring.
+
+[ ] Add following shell commands from Google doc by Andrew, Theo, Hessah:
     [x] help
     [ ] state - ERS system state
     [ ] l - lock ring
     [ ] u - unlock ring
     [ ] pos [poll] - report locking ring position
+
+
