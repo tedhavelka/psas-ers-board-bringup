@@ -14,12 +14,15 @@
  *   executing Zephyr shell facility.
  */
 
+#include <stdlib.h>
+
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/shell/shell.h>
 
 LOG_MODULE_REGISTER(shell_support, LOG_LEVEL_INF);
 
+#include <arbiter.h>
 #include <ers-adc.h>
 #include <keeper.h>
 
@@ -30,9 +33,11 @@ LOG_MODULE_REGISTER(shell_support, LOG_LEVEL_INF);
 // - SECTION - file scoped
 //----------------------------------------------------------------------
 
+#if 0
 K_THREAD_STACK_DEFINE(shell_support_thread_stack, SHELL_SUPPORT_THREAD_STACK_SIZE);
 
 struct k_thread shell_support_thread_data;
+#endif
 
 static const struct shell *shell_ptr_fs = NULL;
 
@@ -117,66 +122,145 @@ static int ers_cmd_diag_periodic_off(const struct shell *shell, size_t argc, cha
 	return 0;
 }
 
-void shell_support_thread(void *arg1, void *arg2, void *arg3)
-{
-        ARG_UNUSED(arg1);
-        ARG_UNUSED(arg2);
-        ARG_UNUSED(arg3);
-
-	LOG_INF("Shell support thread starting . . .");
-
-	SHELL_STATIC_SUBCMD_SET_CREATE(
-		ers_cmds,
-		SHELL_CMD_ARG(adcall, NULL,
-			"Read ERS board's four ADC channels",
-			ers_cmd_wrapper_read_adc_all, 0, 0),
-		SHELL_CMD_ARG(adc0, NULL,
-			"Read ERS board ADC for Hall sensor 1",
-			ers_cmd_wrapper_read_adc_in0, 0, 0),
+SHELL_STATIC_SUBCMD_SET_CREATE(
+	ers_cmds,
+	SHELL_CMD_ARG(adcall, NULL,
+		"Read ERS board's four ADC channels",
+		ers_cmd_wrapper_read_adc_all, 0, 0),
+	SHELL_CMD_ARG(adc0, NULL,
+		"Read ERS board ADC for Hall sensor 1",
+		ers_cmd_wrapper_read_adc_in0, 0, 0),
 #if 0
-		SHELL_CMD_ARG(adc1, NULL,
-			"Read ERS board ADC for Hall sensor 2",
-			cmd_ers_read_adc_in1, 0, 0),
+	SHELL_CMD_ARG(adc1, NULL,
+		"Read ERS board ADC for Hall sensor 2",
+		cmd_ers_read_adc_in1, 0, 0),
 #endif
-		SHELL_CMD_ARG(print_mark, NULL,
-			"output to shell console a brief 'mark' message",
-			ers_cmd_print_mark, 0, 0),
-		SHELL_CMD_ARG(print_shell_ptr, NULL,
-			"print address of run time Zephyr shell instance",
-			ers_cmd_print_shell_addr, 0, 0),
-		SHELL_SUBCMD_SET_END
-		);
+	SHELL_CMD_ARG(print_mark, NULL,
+		"output to shell console a brief 'mark' message",
+		ers_cmd_print_mark, 0, 0),
+	SHELL_CMD_ARG(print_shell_ptr, NULL,
+		"print address of run time Zephyr shell instance",
+		ers_cmd_print_shell_addr, 0, 0),
+	SHELL_SUBCMD_SET_END
+	);
 
-	SHELL_CMD_REGISTER(ers, &ers_cmds, "ERS commands", NULL);
+SHELL_CMD_REGISTER(ers, &ers_cmds, "ERS commands", NULL);
 
-	// shell_set_root_cmd("ers_commands");
+SHELL_STATIC_SUBCMD_SET_CREATE(
+	ers_cmds_diag,
+	SHELL_CMD_ARG(on, NULL,
+		"enable ERS periodic diagnostics",
+		ers_cmd_diag_periodic_on, 0, 0),
+	SHELL_CMD_ARG(off, NULL,
+		"disable ERS periodic diagnostics",
+		ers_cmd_diag_periodic_off, 0, 0),
+	SHELL_SUBCMD_SET_END
+	);
 
+SHELL_CMD_REGISTER(diag, &ers_cmds_diag, "ERS diagnostics", NULL);
+
+// - DEV 1001 BEGIN -
+#if 0
 	SHELL_STATIC_SUBCMD_SET_CREATE(
-		ers_cmds_diag,
-		SHELL_CMD_ARG(on, NULL,
-			"enable ERS periodic diagnostics",
-			ers_cmd_diag_periodic_on, 0, 0),
-		SHELL_CMD_ARG(off, NULL,
-			"disable ERS periodic diagnostics",
-			ers_cmd_diag_periodic_off, 0, 0),
-		SHELL_SUBCMD_SET_END
-		);
+		ers_cmds_hall,
+		SHELL_CMD_ARG(, NULL,
+#endif
 
-	SHELL_CMD_REGISTER(diag, &ers_cmds_diag, "ERS diagnostics", NULL);
+static int cmd1_handler(const struct shell *sh, size_t argc, char **argv)
+{
+        shell_print(sh, "cmd1 executed");
+        return 0;
 }
+
+static int cmd2_handler(const struct shell *sh, size_t argc, char **argv)
+{
+        shell_print(sh, "cmd2 executed");
+        return 0;
+}
+
+// (1)
+SHELL_SUBCMD_SET_CREATE(sub_section_cmd, (section_cmd));
+
+// (2)
+/* Create a set of subcommands for "section_cmd cm1". */
+// SHELL_SUBCMD_SET_CREATE(sub_section_cmd1, (section_cmd, cmd1));
+SHELL_SUBCMD_SET_CREATE(sub_section_cmd1, (section_cmd, cmd1, cmd2));
+
+// (3)
+/* Add command to the set. Subcommand set is identify by parent shell command. */
+SHELL_SUBCMD_ADD((section_cmd), cmd1, &sub_section_cmd1, "help for cmd1", cmd1_handler, 1, 0); 
+
+SHELL_SUBCMD_ADD((section_cmd), cmd2, &sub_section_cmd1, "help for cmd2", cmd2_handler, 1, 0); 
+
+// (4)
+SHELL_CMD_REGISTER(section_cmd, &sub_section_cmd,
+                   "Demo command using section for subcommand registration", NULL);
+
+
+
+// Hall set cutoff command
+
+SHELL_SUBCMD_SET_CREATE(sub_section_cmd3, (hall));
+
+/* Create a set of one subcommand for 'hall' command */
+SHELL_SUBCMD_SET_CREATE(sub_section_cmd4, (hall, set));
+
+// SHELL_SUBCMD_ADD((hall), set, &sub_section_cmd3, "set Hall state change values", NULL, 1, 0);
+
+SHELL_STATIC_SUBCMD_SET_CREATE(
+	hall_set_cmds,
+	SHELL_CMD_ARG(voltage_under_cutoff, NULL,
+		"set highest Hall ADC reading for state 'voltage under'",
+		shell_wrapper_set_v_under_cutoff, 2, 0),
+	SHELL_CMD_ARG(inactive_cutoff, NULL,
+		"set highest Hall ADC reading for state 'inactive'",
+		shell_wrapper_set_inactive_cutoff, 2, 0),
+	SHELL_CMD_ARG(between_cutoff, NULL,
+		"set highest Hall ADC reading for state 'between'",
+		shell_wrapper_set_between_cutoff, 2, 0),
+	SHELL_CMD_ARG(between_cutoff, NULL,
+		"set highest Hall ADC reading for state 'between'",
+		shell_wrapper_set_active_cutoff, 2, 0),
+	SHELL_SUBCMD_SET_END
+	);
+
+SHELL_SUBCMD_ADD((hall), set, &sub_section_cmd4, "set Hall state cutoff values", NULL, 1, 0);
+
+// SHELL_CMD_REGISTER(set, &hall_set_cmds, "set Hall state cutoffs", NULL);
+
+SHELL_STATIC_SUBCMD_SET_CREATE(
+	hall_show_cmds,
+	SHELL_CMD_ARG(show_cutoffs, NULL,
+		"show Hall sensor state cutuffs (in ADC counts)",
+		arbiter_show_hall_state_cutoffs, 0, 0),
+	SHELL_SUBCMD_SET_END
+	);
+
+// SHELL_CMD_REGISTER(hall, &hall_show_cmds, "show Hall state cutoff values", NULL);
+SHELL_SUBCMD_ADD((hall), show_cutoffs, &sub_section_cmd3, "show Hall state cutoff values", arbiter_show_hall_state_cutoffs, 1, 0);
+
+/* Create a set of subcommands for "hall set vunder". */
+// SHELL_SUBCMD_ADD((set), voltage_under_cutoff, &sub_section_cmd3, "set Hall voltage under cutoff", NULL, 1, 0);
+
+/* Add command to the set. Subcommand set is identify by parent shell command. */
+// SHELL_SUBCMD_ADD((hall), set, &sub_section_cmd1, "set Hall cutoff values", cmd1_handler, 1, 0); 
+
+// - DEV 1001 END -
+
+
 
 int32_t ers_init_shell_support(void)
 {
 	int32_t rc = 0;
-
+#if 0
         k_tid_t shell_support_tid = k_thread_create(&shell_support_thread_data,
 				 shell_support_thread_stack,
                                  K_THREAD_STACK_SIZEOF(shell_support_thread_stack),
-                                 shell_support_thread, NULL, NULL, NULL,
+                                 shell_support_thread_entry, NULL, NULL, NULL,
                                  SHELL_SUPPORT_THREAD_PRIORITY, 0, K_NO_WAIT);
         if (!shell_support_tid) {
                 LOG_ERR("ERROR spawning shell support thread\n");
         }
-
+#endif
 	return rc;
 }
