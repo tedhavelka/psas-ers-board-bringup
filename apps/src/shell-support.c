@@ -200,34 +200,20 @@ SHELL_CMD_REGISTER(section_cmd, &sub_section_cmd,
 
 // Hall set cutoff command
 
-SHELL_SUBCMD_SET_CREATE(sub_section_cmd3, (hall));
+SHELL_SUBCMD_SET_CREATE(sub_section_hall, (hall));
 
 /* Create a set of one subcommand for 'hall' command */
-SHELL_SUBCMD_SET_CREATE(sub_section_cmd4, (hall, set));
+SHELL_SUBCMD_SET_CREATE(sub_section_hall_set, (hall, set));
 
-// SHELL_SUBCMD_ADD((hall), set, &sub_section_cmd3, "set Hall state change values", NULL, 1, 0);
+SHELL_SUBCMD_ADD((hall), cmd3, &sub_section_hall_set, "set Hall state voltage under cutoff", NULL, 1, 0);
 
-SHELL_STATIC_SUBCMD_SET_CREATE(
-	hall_set_cmds,
-	SHELL_CMD_ARG(voltage_under_cutoff, NULL,
-		"set highest Hall ADC reading for state 'voltage under'",
-		shell_wrapper_set_v_under_cutoff, 2, 0),
-	SHELL_CMD_ARG(inactive_cutoff, NULL,
-		"set highest Hall ADC reading for state 'inactive'",
-		shell_wrapper_set_inactive_cutoff, 2, 0),
-	SHELL_CMD_ARG(between_cutoff, NULL,
-		"set highest Hall ADC reading for state 'between'",
-		shell_wrapper_set_between_cutoff, 2, 0),
-	SHELL_CMD_ARG(between_cutoff, NULL,
-		"set highest Hall ADC reading for state 'between'",
-		shell_wrapper_set_active_cutoff, 2, 0),
-	SHELL_SUBCMD_SET_END
-	);
+SHELL_SUBCMD_ADD((hall), cmd4, &sub_section_hall_set, "set Hall state inactive cutoff", NULL, 1, 0);
 
-SHELL_SUBCMD_ADD((hall), set, &sub_section_cmd4, "set Hall state cutoff values", NULL, 1, 0);
+SHELL_SUBCMD_ADD((hall), show_cutoffs, &sub_section_hall, "show Hall state cutoff values", arbiter_show_hall_state_cutoffs, 1, 0);
 
-// SHELL_CMD_REGISTER(set, &hall_set_cmds, "set Hall state cutoffs", NULL);
+SHELL_CMD_REGISTER(hall, &sub_section_hall, "set and show Hall state cutoff values (in ADC counts)", NULL);
 
+#if 0
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	hall_show_cmds,
 	SHELL_CMD_ARG(show_cutoffs, NULL,
@@ -235,15 +221,9 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 		arbiter_show_hall_state_cutoffs, 0, 0),
 	SHELL_SUBCMD_SET_END
 	);
+#endif
 
 // SHELL_CMD_REGISTER(hall, &hall_show_cmds, "show Hall state cutoff values", NULL);
-SHELL_SUBCMD_ADD((hall), show_cutoffs, &sub_section_cmd3, "show Hall state cutoff values", arbiter_show_hall_state_cutoffs, 1, 0);
-
-/* Create a set of subcommands for "hall set vunder". */
-// SHELL_SUBCMD_ADD((set), voltage_under_cutoff, &sub_section_cmd3, "set Hall voltage under cutoff", NULL, 1, 0);
-
-/* Add command to the set. Subcommand set is identify by parent shell command. */
-// SHELL_SUBCMD_ADD((hall), set, &sub_section_cmd1, "set Hall cutoff values", cmd1_handler, 1, 0); 
 
 // - DEV 1001 END -
 
@@ -252,15 +232,5 @@ SHELL_SUBCMD_ADD((hall), show_cutoffs, &sub_section_cmd3, "show Hall state cutof
 int32_t ers_init_shell_support(void)
 {
 	int32_t rc = 0;
-#if 0
-        k_tid_t shell_support_tid = k_thread_create(&shell_support_thread_data,
-				 shell_support_thread_stack,
-                                 K_THREAD_STACK_SIZEOF(shell_support_thread_stack),
-                                 shell_support_thread_entry, NULL, NULL, NULL,
-                                 SHELL_SUPPORT_THREAD_PRIORITY, 0, K_NO_WAIT);
-        if (!shell_support_tid) {
-                LOG_ERR("ERROR spawning shell support thread\n");
-        }
-#endif
 	return rc;
 }
