@@ -36,6 +36,10 @@ ERS firmware TODO list:
 
 [ ] Implement an arbiter to act upon current state and gathered data.
     [x] create an arbiter thread with stub code.
+    [ ] add logic to arbiter to determine and store ring state.
+    [ ] add logic to arbiter to determine and store battery state.
+    [ ] add logic to arbiter to determine and store shore power state.
+    [ ] add logic to arbiter to determine and store ready state.
 
 [x] Implement a local way to toggle periodic diagnostics on and off at run time.
 

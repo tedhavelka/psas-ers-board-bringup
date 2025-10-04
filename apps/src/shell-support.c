@@ -205,9 +205,13 @@ SHELL_SUBCMD_SET_CREATE(sub_section_hall, (hall));
 /* Create a set of one subcommand for 'hall' command */
 SHELL_SUBCMD_SET_CREATE(sub_section_hall_set, (hall, set));
 
-SHELL_SUBCMD_ADD((hall), cmd3, &sub_section_hall_set, "set Hall state voltage under cutoff", NULL, 1, 0);
+SHELL_SUBCMD_ADD((hall), v_under_cutoff, &sub_section_hall_set, "set Hall state voltage under cutoff", shell_wrapper_set_v_under_cutoff, 2, 0);
 
-SHELL_SUBCMD_ADD((hall), cmd4, &sub_section_hall_set, "set Hall state inactive cutoff", NULL, 1, 0);
+SHELL_SUBCMD_ADD((hall), inactive_cutoff, &sub_section_hall_set, "set Hall state inactive cutoff", shell_wrapper_set_inactive_cutoff, 2, 0);
+
+SHELL_SUBCMD_ADD((hall), between_cutoff, &sub_section_hall_set, "set Hall state between cutoff", shell_wrapper_set_between_cutoff, 2, 0);
+
+SHELL_SUBCMD_ADD((hall), active_cutoff, &sub_section_hall_set, "set Hall state active cutoff", shell_wrapper_set_active_cutoff, 2, 0);
 
 SHELL_SUBCMD_ADD((hall), show_cutoffs, &sub_section_hall, "show Hall state cutoff values", arbiter_show_hall_state_cutoffs, 1, 0);
 
