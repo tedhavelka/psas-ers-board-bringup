@@ -55,12 +55,10 @@ struct k_thread adc_thread_data;
 
 K_THREAD_STACK_DEFINE(adc_thread_stack, ADC_THREAD_STACK_SIZE);
 
-enum ers_analog_signals {
-	ERS_READING_IDX_HALL_1,
-	ERS_READING_IDX_HALL_2,
-	ERS_READING_IDX_BATT_READ,
-	ERS_READING_IDX_MOTOR_ISENSE
-};
+struct k_mutex keeper_mtx;
+
+static uint32_t hall_adc_count_1_fs = 0;
+static uint32_t hall_adc_count_2_fs = 0;
 
 //----------------------------------------------------------------------
 // - SECTION - routines
@@ -72,14 +70,23 @@ int32_t cmd_ers_read_adc_in0(const struct shell *shell)
         return 0;
 }
 
-// TODO [ ] Add a function which calls an ERS module to store latest ADC
-//   reading using Zephyr atomic access API.
-
-// TODO [ ] Amend the "read ADC all" command to accept a range of channels,
+// TODO [x] Amend the "read ADC all" command to accept a range of channels,
 //   to support the reading of one channel with the same routine.
 
-int32_t cmd_ers_read_adc_all(const struct shell *shell)
+// TODO [ ] Add local static vars for Hall sensor readings, so they may be
+//   passed as a pair to keeper module.
+
+int32_t adc_read_channels(const enum ers_adc_values idx_begin,
+			  const enum ers_adc_values idx_end)
 {
+	if ((idx_begin < 0) || (idx_end > ARRAY_SIZE(adc_channels)))
+	{
+		LOG_ERR("Asked to read ADC channel out of range!");
+		LOG_ERR("One of begin %d and end %d out of range %d..%d",
+			idx_begin, idx_end, 0, ARRAY_SIZE(adc_channels));
+		return -EINVAL;
+	}
+
         int32_t rc = 0;
         uint32_t count = 0;
         uint16_t buf;
@@ -89,43 +96,30 @@ int32_t cmd_ers_read_adc_all(const struct shell *shell)
                 .buffer_size = sizeof(buf),
         };
 
-        /* Configure channels individually prior to sampling. */
-        for (size_t i = 0U; i < ARRAY_SIZE(adc_channels); i++) {
-                if (!adc_is_ready_dt(&adc_channels[i])) {
-                        // LOG_ERR("ADC controller device %s not ready\n", adc_channels[i].dev->name);
-                        shell_fprintf(shell, SHELL_ERROR, "ADC controller device %s not ready\n",
-                                     adc_channels[i].dev->name);
-                        rc = -ENODEV;
-                }
-
-                rc = adc_channel_setup_dt(&adc_channels[i]);
-                if (rc < 0) {
-                        // LOG_ERR("Could not setup channel #%d (%d)\n", i, rc);
-                        shell_fprintf(shell, SHELL_ERROR, "Could not setup channel #%d (%d)\n", i, rc);
-                        rc = -EINVAL;
-                }
-        }
-
-        // LOG_INF("ADC reading[%u]:\n", count++);
-        shell_fprintf(shell, SHELL_NORMAL, "ADC reading[%u]:\n", count++);
+#if DEV_ERS_ADC_REGULAR_REPORTING
+        LOG_INF("ADC reading[%u]:", count++);
+#endif
         for (size_t i = 0U; i < ARRAY_SIZE(adc_channels); i++)
         {
                 int32_t val_mv;
 
-                // LOG_INF("- %s, channel %d: ",
-                shell_fprintf(shell, SHELL_NORMAL, "- %s, channel %d: ",
+#if DEV_ERS_ADC_REGULAR_REPORTING
+                LOG_INF("- %s, channel %d: ",
                              adc_channels[i].dev->name,
                              adc_channels[i].channel_id);
+#endif
 
                 (void)adc_sequence_init_dt(&adc_channels[i], &sequence);
 
                 rc = adc_read_dt(&adc_channels[i], &sequence);
                 if (rc < 0)
                 {
-                        // LOG_ERR("Could not read ADC channel, error (%d)\n", rc);
-                        shell_fprintf(shell, SHELL_ERROR, "Could not read ADC channel, error (%d)\n", rc);
+                        LOG_ERR("Could not read ADC channel, error (%d)", rc);
                         continue;
                 }
+
+		// Store ADC reading in ERS app "keeper" module:
+		ekset_adc_value(i, (uint32_t)buf);
 
                 /*
                  * If using differential mode, the 16 bit value
@@ -141,22 +135,24 @@ int32_t cmd_ers_read_adc_all(const struct shell *shell)
                         val_mv = (int32_t)buf;
                 }
 
-                // LOG_INF("%"PRId32, val_mv);
-                shell_fprintf(shell, SHELL_NORMAL, "%"PRId32, val_mv);
-                rc = adc_raw_to_millivolts_dt(&adc_channels[i],
-                               &val_mv);
+#if DEV_ERS_ADC_REGULAR_REPORTING
+                LOG_INF("%"PRId32, val_mv);
+#endif
+                rc = adc_raw_to_millivolts_dt(&adc_channels[i], &val_mv);
                 /* conversion to mV may not be supported, skip if not */
                 if (rc < 0)
                 {
-                        // LOG_WRN(" (value in mV not available)\n");
-                        shell_fprintf(shell, SHELL_ERROR, " (value in mV not available)\n");
+                        LOG_WRN(" (value in mV not available)");
                 }
                 else
                 {
-                        // LOG_INF(" = %"PRId32" mV\n", val_mv);
-                        shell_fprintf(shell, SHELL_NORMAL, " = %"PRId32" mV\n", val_mv);
-                }
-        }
+			// Store ADC reading in ERS app "keeper" module:
+			ekset_adc_value_in_mv((i + IDX_START_MV_READINGS), (uint32_t)buf);
+#if DEV_ERS_ADC_REGULAR_REPORTING
+                        LOG_INF(" = %"PRId32" mV", val_mv);
+#endif
+		}
+	}
 
 	return rc;
 }
@@ -168,13 +164,6 @@ void adc_thread_entry(void *arg1, void *arg2, void *arg3)
         ARG_UNUSED(arg3);
 
         int32_t rc = 0;
-        // uint32_t count = 0;
-        uint16_t buf;
-        struct adc_sequence sequence = {
-                .buffer = &buf,
-                /* buffer size in bytes, not number of samples */
-                .buffer_size = sizeof(buf),
-        };
 
         /* Configure channels individually prior to sampling. */
         for (size_t i = 0U; i < ARRAY_SIZE(adc_channels); i++)
@@ -194,100 +183,46 @@ void adc_thread_entry(void *arg1, void *arg2, void *arg3)
         while (1)
         {
 #if DEV_ERS_ADC_REGULAR_REPORTING
-                LOG_INF("ADC reading[%u]:\n", count++);
+                LOG_INF("ADC reading[%u]: (thread entry function)\n", count++);
 #endif
-                for (size_t i = 0U; i < ARRAY_SIZE(adc_channels); i++)
-                {
-                        int32_t val_mv;
-
-#if DEV_ERS_ADC_REGULAR_REPORTING
-                        LOG_INF("- %s, channel %d: ", adc_channels[i].dev->name,
-                                 adc_channels[i].channel_id);
-#endif
-
-                        (void)adc_sequence_init_dt(&adc_channels[i], &sequence);
-
-                        rc = adc_read_dt(&adc_channels[i], &sequence);
-                        if (rc < 0)
-                        {
-#if DEV_ERS_ADC_REGULAR_REPORTING
-                                LOG_ERR("Could not read ADC channel, error (%d)\n", rc);
-#endif
-                                continue;
-                        }
-
-			// File scoped 'buf' is passed by reference via 'sequence'
-			switch (i)
-			{
-			case ERS_READING_IDX_BATT_READ:
-				ekset_batt_read((uint32_t)buf);
-				break;
-			case ERS_READING_IDX_MOTOR_ISENSE:
-				ekset_motor_isense((uint32_t)buf);
-				break;
-			case ERS_READING_IDX_HALL_1:
-				ekset_hall_1((uint32_t)buf);
-				break;
-			case ERS_READING_IDX_HALL_2:
-				ekset_hall_2((uint32_t)buf);
-				break;
-			}
-
-                        /*
-                         * If using differential mode, the 16 bit value
-                         * in the ADC sample buffer should be a signed 2's
-                         * complement value.
-                         */
-                        if (adc_channels[i].channel_cfg.differential)
-                        {
-                                val_mv = (int32_t)((int16_t)buf);
-                        }
-                        else
-                        {
-                                val_mv = (int32_t)buf;
-                        }
-#if DEV_ERS_ADC_REGULAR_REPORTING
-                        LOG_INF("%"PRId32, val_mv);
-#endif
-                        rc = adc_raw_to_millivolts_dt(&adc_channels[i], &val_mv);
-                        /* conversion to mV may not be supported, skip if not */
-                        if (rc < 0)
-                        {
-#if DEV_ERS_ADC_REGULAR_REPORTING
-                                LOG_WRN(" (value in mV not available)\n");
-#endif
-                        }
-                        else
-                        {
-#if DEV_ERS_ADC_REGULAR_REPORTING
-                                LOG_INF(" = %"PRId32" mV\n", val_mv);
-#endif
-				if (i == ERS_READING_IDX_BATT_READ)
-                        	{
-                        		ekset_batt_read_dv(val_mv * 0.01);
-                        	}
-                        }
-                }
+		rc = adc_read_channels(ADC_READING_BATT_READ, ADC_READING_HALL_2);
                 k_sleep(K_MSEC(ADC_READ_PERIOD_MS));
         }
 }
 
 int32_t adc_init(void)
 {
-    int32_t rc = 0;
+	int32_t rc = 0;
 
-    k_tid_t adc_tid = k_thread_create(&adc_thread_data, adc_thread_stack,
-                                 K_THREAD_STACK_SIZEOF(adc_thread_stack),
-                                 adc_thread_entry, NULL, NULL, NULL,
-                                 ADC_THREAD_PRIORITY, 0, K_NO_WAIT);
-    if (!adc_tid)
-    {
-        LOG_ERR("ERROR spawning ADC thread\n");
-    }
-    else
-    {
-        LOG_INF("starting ADC thread . . .");
-    }
+	k_mutex_init(&keeper_mtx);
 
-    return rc;
+        /* Configure channels individually prior to sampling. */
+        for (size_t i = 0U; i < ARRAY_SIZE(adc_channels); i++) {
+                if (!adc_is_ready_dt(&adc_channels[i])) {
+                        LOG_ERR("ADC controller device %s not ready",
+                                     adc_channels[i].dev->name);
+                        rc = -ENODEV;
+                }
+
+                rc = adc_channel_setup_dt(&adc_channels[i]);
+                if (rc < 0) {
+                        LOG_ERR("Could not setup channel #%d (%d)", i, rc);
+                        rc = -EINVAL;
+                }
+        }
+
+	k_tid_t adc_tid = k_thread_create(&adc_thread_data, adc_thread_stack,
+					  K_THREAD_STACK_SIZEOF(adc_thread_stack),
+					  adc_thread_entry, NULL, NULL, NULL,
+					  ADC_THREAD_PRIORITY, 0, K_NO_WAIT);
+	if (!adc_tid)
+	{
+		LOG_ERR("ERROR spawning ADC thread\n");
+	}
+	else
+	{
+		LOG_INF("starting ADC thread . . .");
+	}
+
+	return rc;
 }

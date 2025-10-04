@@ -47,10 +47,6 @@ ADC channels are 12-bit, hence ADC counts range 0..4095.  Define
 
 #define BASE_10 10
 
-//----------------------------------------------------------------------
-// - SECTION - file scoped
-//----------------------------------------------------------------------
-
 #define ERS_ARBITER_SLEEP_PER_MS 2000
 
 //----------------------------------------------------------------------
@@ -74,6 +70,8 @@ static atomic_t hall_reading_v_under_cutoff_fs = ATOMIC_INIT(HALL_READING_V_UNDE
 static atomic_t hall_reading_inactive_cutoff_fs = ATOMIC_INIT(HALL_READING_INACTIVE_CUTOFF);
 static atomic_t hall_reading_between_cutoff_fs = ATOMIC_INIT(HALL_READING_BETWEEN_CUTOFF);
 static atomic_t hall_reading_active_cutoff_fs = ATOMIC_INIT(HALL_READING_ACTIVE_CUTOFF);
+
+void arbiter_set_hall_state_cutoff_defaults(void);
 
 //----------------------------------------------------------------------
 // - SECTION - routines
@@ -219,6 +217,17 @@ enum hall_sensor_state arbiter_adc_reading_to_hall_state(const uint32_t adc_read
 	return sensor_state;
 }
 
+int32_t arbiter_determine_ring_state(void)
+{
+	int32_t rc = 0;
+	enum hall_sensor_state hall_1_state;
+	enum hall_sensor_state hall_2_state;
+
+// [ ] Obtain both Hall sensor readings
+
+	return rc;
+}
+
 void arbiter_thread_entry(void *arg1, void *arg2, void *arg3)
 {
         ARG_UNUSED(arg1);
@@ -243,6 +252,14 @@ void arbiter_thread_entry(void *arg1, void *arg2, void *arg3)
 	}
 }
 
+void arbiter_set_hall_state_cutoff_defaults(void)
+{
+	arbiter_set_v_under_cutoff(HALL_READING_V_UNDER_CUTOFF);
+	arbiter_set_inactive_cutoff(HALL_READING_INACTIVE_CUTOFF);
+	arbiter_set_between_cutoff(HALL_READING_BETWEEN_CUTOFF);
+	arbiter_set_active_cutoff(HALL_READING_ACTIVE_CUTOFF);
+}
+
 int32_t ers_init_arbiter(void)
 {
 	int32_t rc = 0;
@@ -250,17 +267,20 @@ int32_t ers_init_arbiter(void)
 	// Initialize Hall sensor ADC count threshold values:
 	// (These values used to determine practical Hall sensor states)
 
+#if 0
 	arbiter_set_v_under_cutoff(HALL_READING_V_UNDER_CUTOFF);
 	arbiter_set_inactive_cutoff(HALL_READING_INACTIVE_CUTOFF);
 	arbiter_set_between_cutoff(HALL_READING_BETWEEN_CUTOFF);
 	arbiter_set_active_cutoff(HALL_READING_ACTIVE_CUTOFF);
+#endif
+	arbiter_set_hall_state_cutoff_defaults();
 
 	k_tid_t arbiter_tid = k_thread_create(&arbiter_thread_data, arbiter_thread_stack,
-					 K_THREAD_STACK_SIZEOF(arbiter_thread_stack),
-					 arbiter_thread_entry, NULL, NULL, NULL,
-				 ARBITER_THREAD_PRIORITY, 0, K_NO_WAIT);
+					K_THREAD_STACK_SIZEOF(arbiter_thread_stack),
+					arbiter_thread_entry, NULL, NULL, NULL,
+				 	ARBITER_THREAD_PRIORITY, 0, K_NO_WAIT);
 	if (!arbiter_tid) {
-		LOG_ERR("ERROR spawning rx thread\n");
+		LOG_ERR("ERROR spawning arbiter thread\n");
 	}
 
 	return rc;

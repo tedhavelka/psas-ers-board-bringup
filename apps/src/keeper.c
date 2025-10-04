@@ -14,6 +14,8 @@
 
 LOG_MODULE_REGISTER(keeper, LOG_LEVEL_INF);
 
+#include <keeper.h>
+
 /*
 ------------------------------------------------------------------------
 Summary of known ERS inputs 2025-09-25, subject to be updated:
@@ -52,6 +54,13 @@ static atomic_t motor_isense = ATOMIC_INIT(0);
 static atomic_t hall_1 = ATOMIC_INIT(0);
 static atomic_t hall_2 = ATOMIC_INIT(0);
 
+static atomic_t batt_read_mv = ATOMIC_INIT(0);
+static atomic_t motor_isense_mv = ATOMIC_INIT(0);
+static atomic_t hall_1_mv = ATOMIC_INIT(0);
+static atomic_t hall_2_mv = ATOMIC_INIT(0);
+
+// TODO [ ] Refactor battery millivolt to decivolt conversion to occur
+//   after calls to get batter voltage:
 static atomic_t batt_read_dv = ATOMIC_INIT(0);
 
 // Off-chip peripherals and system statae
@@ -60,7 +69,7 @@ static atomic_t batt_read_dv = ATOMIC_INIT(0);
 // [x] batt_voltage   . . . among analog inputs
 // [ ] batt_ok        . . . a threshold based state
 // [ ] shore_power_ok . . . 1 = shore power detected, 0 = no shore power
-// [ ] can_bus_ok     . . . telemetrum heartbeat received within last two seconds
+// [x] can_bus_ok     . . . telemetrum heartbeat received within last two seconds
 // [ ] ready_state    . . . true when (1) battery ok (2) ring locked (3) CAN bus ok
 // [ ] reserved
 // [ ] reserved
@@ -73,6 +82,10 @@ static atomic_t ready_state = ATOMIC_INIT(0);
 
 // Support run time toggling of diagnostics which share UART with Zephyr shell:
 static atomic_t ers_diag_flag_fs = ATOMIC_INIT(0);
+
+struct k_mutex hall_sensors_mtx;
+
+static bool keeper_init_yes_fs = false;
 
 //----------------------------------------------------------------------
 // - SECTION - routines
@@ -127,7 +140,7 @@ void ekget_not_motor_faila(uint32_t* value)
 // - SECTION - ERS analog inputs
 //----------------------------------------------------------------------
 
-// "set" APIs
+// "set" APIs for analog inputs
 
 void ekset_batt_read(const uint32_t value)
 {
@@ -158,16 +171,106 @@ void ekset_hall_2(const uint32_t value)
 	atomic_set(&hall_2, (atomic_val_t)value);
 }
 
-// "get" APIs
+// Analog counts converted to millivolts:
+
+void ekset_batt_read_mv(const uint32_t value)
+{
+	atomic_set(&batt_read_mv, (atomic_val_t)value);
+}
+
+void ekset_motor_isense_mv(const uint32_t value)
+{
+	atomic_set(&motor_isense_mv, (atomic_val_t)value);
+}
+
+void ekset_hall_1_mv(const uint32_t value)
+{
+	atomic_set(&hall_1_mv, (atomic_val_t)value);
+}
+
+void ekset_hall_2_mv(const uint32_t value)
+{
+	atomic_set(&hall_2_mv, (atomic_val_t)value);
+}
+
+
+/**
+ * @brief Function to store both Hall sensor readings with mutual exclusion
+ *   to assure these values are read only when both are up to date.
+ */
+
+int32_t ekset_both_hall_sensors(const uint32_t value_1, const uint32_t value_2)
+{
+	if (!keeper_init_yes_fs)
+	{
+		LOG_ERR("Data keeper module not initialized!");
+		return -ESRCH;
+	}
+
+// See zephyr/samples/arch/smp/pktqueue/src/main.c
+
+	k_mutex_lock(&hall_sensors_mtx, K_FOREVER);
+	ekset_hall_1(value_1);
+	ekset_hall_2(value_2);
+	k_mutex_unlock(&hall_sensors_mtx);
+
+	return 0;
+}
+
+int32_t ekset_adc_value(const enum ers_adc_values idx, const uint32_t val)
+{
+	switch (idx)
+	{
+        case ADC_READING_BATT_READ:
+		ekset_batt_read(val);
+		break;
+        case ADC_READING_MOTOR_ISENSE:
+		ekset_motor_isense(val);
+		break;
+	case ADC_READING_HALL_1:
+		ekset_hall_1(val);
+		break;
+        case ADC_READING_HALL_2:
+		ekset_hall_2(val);
+		break;
+	default:
+		LOG_ERR("Asked to store value for undefined ADC channel %d", idx);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+int32_t ekset_adc_value_in_mv(const enum ers_adc_values_in_mv idx, const uint32_t val)
+{
+	switch (idx)
+	{
+        case ADC_READING_BATT_READ_MV:
+		ekset_batt_read_mv(val);
+		break;
+        case ADC_READING_MOTOR_ISENSE_MV:
+		ekset_motor_isense_mv(val);
+		break;
+        case ADC_READING_HALL_1_MV:
+		ekset_hall_1_mv(val);
+		break;
+        case ADC_READING_HALL_2_MV:
+		ekset_hall_2_mv(val);
+		break;
+
+	default:
+		LOG_ERR("Asked to store value for undefined ADC channel %d", idx);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+// "get" APIs for analog inputs
 
 void ekget_batt_read(uint32_t* value)
 {
 	*value = atomic_get(&batt_read);
-}
-
-void ekget_batt_read_dv(uint32_t* value)
-{
-	*value = atomic_get(&batt_read_dv);
 }
 
 void ekget_motor_isense(uint32_t* value)
@@ -183,6 +286,54 @@ void ekget_hall_1(uint32_t* value)
 void ekget_hall_2(uint32_t* value)
 {
 	*value = atomic_get(&hall_2);
+}
+
+
+void ekget_batt_read_mv(uint32_t* value)
+{
+	*value = atomic_get(&batt_read_mv);
+}
+
+void ekget_motor_isense_mv(uint32_t* value)
+{
+	*value = atomic_get(&motor_isense_mv);
+}
+
+void ekget_hall_1_mv(uint32_t* value)
+{
+	*value = atomic_get(&hall_1_mv);
+}
+
+void ekget_hall_2_mv(uint32_t* value)
+{
+	*value = atomic_get(&hall_2_mv);
+}
+
+
+// The decivolt value getter . . .
+
+void ekget_batt_read_dv(uint32_t* value)
+{
+	*value = atomic_get(&batt_read_dv);
+}
+
+// Give ring state logic readings from same sample period:
+
+int32_t ekget_both_hall_sensors(uint32_t *value_1, uint32_t *value_2)
+{
+	if (!keeper_init_yes_fs)
+	{
+		LOG_ERR("Data keeper module not initialized!");
+		*value_1 = atomic_get(&hall_1);
+		*value_2 = atomic_get(&hall_2);
+		return -ESRCH;
+	}
+
+	k_mutex_lock(&hall_sensors_mtx, K_FOREVER);
+	ekget_hall_1_mv(value_1);
+	ekget_hall_2_mv(value_2);
+	k_mutex_unlock(&hall_sensors_mtx);
+	return 0;
 }
 
 //----------------------------------------------------------------------
@@ -265,4 +416,11 @@ void ek_sys_diag_quiet(void)
 void ek_get_sys_diag_mode(uint32_t* value)
 {
 	*value = atomic_get(&ers_diag_flag_fs);
+}
+
+int32_t ers_init_keeper(void)
+{
+	k_mutex_init(&hall_sensors_mtx);
+	keeper_init_yes_fs = true;
+	return 0;
 }

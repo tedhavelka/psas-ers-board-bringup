@@ -54,15 +54,18 @@ static uint32_t dev_test_calls_fs = 0;
  * @note
  */
 
+#if 0
 static int ers_cmd_wrapper_read_adc_all(const struct shell *shell, size_t argc, char *argv[])
 {
 	int rc = cmd_ers_read_adc_all(shell);
 	return rc;
 }
+#endif
 
 static int ers_cmd_wrapper_read_adc_in0(const struct shell *shell, size_t argc, char *argv[])
 {
-	int rc = cmd_ers_read_adc_in0(shell);
+	int32_t rc = 0;
+	shell_fprintf(shell, SHELL_NORMAL, "- STUB FUNCTION - to read and print ADC IN0 channel.\n");
 	return rc;
 }
 
@@ -122,10 +125,37 @@ static int ers_cmd_diag_periodic_off(const struct shell *shell, size_t argc, cha
 	return 0;
 }
 
+static int ers_cmd_wrapper_read_adc_all(const struct shell *shell, size_t argc, char *argv[])
+{
+        ARG_UNUSED(shell);
+        ARG_UNUSED(argc);
+        ARG_UNUSED(argv);
+	int32_t rc = 0;
+
+        shell_print(shell, "Calling ADC module to read all ADC channels . . .");
+	rc = adc_read_channels(ADC_READING_BATT_READ, ADC_READING_HALL_2);
+	if (rc != 0)
+	{
+		LOG_ERR("ADC read channels returns error status %d", rc);
+		LOG_ERR("Last known good stored readings are:");
+	}
+
+	uint32_t a, b, c, d;
+	ekget_batt_read(&a);
+	ekget_motor_isense(&b);
+	ekget_hall_1(&c);
+	ekget_hall_2(&d);
+	LOG_INF("ADC counts for batter, motor current, Hall 1, Hall 2:");
+	LOG_INF("%u  %u  %u  %u", a, b, c, d);
+
+	return rc;
+}
+
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	ers_cmds,
 	SHELL_CMD_ARG(adcall, NULL,
 		"Read ERS board's four ADC channels",
+
 		ers_cmd_wrapper_read_adc_all, 0, 0),
 	SHELL_CMD_ARG(adc0, NULL,
 		"Read ERS board ADC for Hall sensor 1",
@@ -160,11 +190,6 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 SHELL_CMD_REGISTER(diag, &ers_cmds_diag, "ERS diagnostics", NULL);
 
 // - DEV 1001 BEGIN -
-#if 0
-	SHELL_STATIC_SUBCMD_SET_CREATE(
-		ers_cmds_hall,
-		SHELL_CMD_ARG(, NULL,
-#endif
 
 static int cmd1_handler(const struct shell *sh, size_t argc, char **argv)
 {
@@ -198,7 +223,7 @@ SHELL_CMD_REGISTER(section_cmd, &sub_section_cmd,
 
 
 
-// Hall set cutoff command
+// ERS set Hall state cutoff values
 
 SHELL_SUBCMD_SET_CREATE(sub_section_hall, (hall));
 
@@ -215,23 +240,9 @@ SHELL_SUBCMD_ADD((hall), active_cutoff, &sub_section_hall_set, "set Hall state a
 
 SHELL_SUBCMD_ADD((hall), show_cutoffs, &sub_section_hall, "show Hall state cutoff values", arbiter_show_hall_state_cutoffs, 1, 0);
 
-SHELL_CMD_REGISTER(hall, &sub_section_hall, "set and show Hall state cutoff values (in ADC counts)", NULL);
-
-#if 0
-SHELL_STATIC_SUBCMD_SET_CREATE(
-	hall_show_cmds,
-	SHELL_CMD_ARG(show_cutoffs, NULL,
-		"show Hall sensor state cutuffs (in ADC counts)",
-		arbiter_show_hall_state_cutoffs, 0, 0),
-	SHELL_SUBCMD_SET_END
-	);
-#endif
-
-// SHELL_CMD_REGISTER(hall, &hall_show_cmds, "show Hall state cutoff values", NULL);
+SHELL_CMD_REGISTER(hall, &sub_section_hall, "ERS set and show Hall state cutoff values (in ADC counts)", NULL);
 
 // - DEV 1001 END -
-
-
 
 int32_t ers_init_shell_support(void)
 {
