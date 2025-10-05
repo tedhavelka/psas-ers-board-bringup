@@ -76,8 +76,10 @@ int32_t cmd_ers_read_adc_in0(const struct shell *shell)
 // TODO [x] Amend the "read ADC all" command to accept a range of channels,
 //   to support the reading of one channel with the same routine.
 
-// TODO [ ] Add local static vars for Hall sensor readings, so they may be
-//   passed as a pair to keeper module.
+// TODO [ ] Implement logic to update both Hall sensor values when "read ADC
+//   channels" API is called to read all channels.  (This to assue that Hall
+//   sensor readings are from the same cycle of readings, and not the past
+//   two cycles.)
 
 int32_t adc_read_channels(const enum ers_adc_values idx_begin,
 			  const enum ers_adc_values idx_end)
@@ -156,7 +158,7 @@ int32_t adc_read_channels(const enum ers_adc_values idx_begin,
                 else
                 {
 			// Store ADC reading in ERS app "keeper" module:
-			ekset_adc_value_in_mv((i + IDX_START_MV_READINGS), (uint32_t)buf);
+			ekset_adc_value_in_mv(i, (uint32_t)buf);
 #if DEV_ERS_ADC_REGULAR_REPORTING
                         LOG_INF(" = %"PRId32" mV", val_mv);
 #endif

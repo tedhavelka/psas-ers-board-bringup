@@ -59,27 +59,6 @@ ADC channels are 12-bit, hence ADC counts range 0..4095.  Define
 K_THREAD_STACK_DEFINE(arbiter_thread_stack, ARBITER_THREAD_STACK_SIZE);
 struct k_thread arbiter_thread_data;
 
-#if 0
-enum hall_sensor_state {
-	HALL_OUTPUT_UNDER_VOLTAGE,
-	HALL_OUTPUT_INACTIVE,
-	HALL_OUTPUT_BETWEEN,
-	HALL_OUTPUT_ACTIVE,
-	HALL_OUTPUT_OVER_VOLTAGE,
-	HALL_OUTPUT_UNKNOWN
-};
-
-enum lock_ring_position {
-	RING_LOCKED,
-	RING_BETWEEN_L_AND_U,
-	RING_UNLOCKED,
-	RING_LOCKED_FULLY_QUALIFIED,
-	RING_BETWEEN_FULLY_QUALIFIED,
-	RING_UNLOCKED_FULLY_QUALIFIED,
-	RING_POSITION_UNKNOWN
-};
-#endif
-
 static atomic_t hall_reading_v_under_cutoff_fs = ATOMIC_INIT(HALL_READING_V_UNDER_CUTOFF);
 static atomic_t hall_reading_inactive_cutoff_fs = ATOMIC_INIT(HALL_READING_INACTIVE_CUTOFF);
 static atomic_t hall_reading_between_cutoff_fs = ATOMIC_INIT(HALL_READING_BETWEEN_CUTOFF);
@@ -238,14 +217,13 @@ enum hall_sensor_state adc_reading_to_hall_state(const uint32_t adc_reading)
  *    a sensible starting value, namely 'RING_POSITION_UNKNOWN'.
  */
 
-int32_t arbiter_determine_ring_state(enum lock_ring_position ring_position)
+int32_t arbiter_determine_ring_state(enum lock_ring_position *ring_position)
 {
 	int32_t rc = 0;
 	uint32_t hall_1_reading = 0;
 	uint32_t hall_2_reading = 0;
 	enum hall_sensor_state hall_1_state = HALL_OUTPUT_UNKNOWN;
 	enum hall_sensor_state hall_2_state = HALL_OUTPUT_UNKNOWN;
-	// enum lock_ring_position ring_position = RING_POSITION_UNKNOWN;
 
 	rc = ekget_both_hall_sensors(&hall_1_reading, &hall_1_reading);
 	if (rc != 0)
@@ -274,14 +252,14 @@ determinations.
 	// Look for possible "between" sensor values pairs first:
 	if ((hall_1_state == HALL_OUTPUT_BETWEEN) || (hall_2_state == HALL_OUTPUT_BETWEEN))
 	{
-		ring_position = RING_BETWEEN_L_AND_U;
+		*ring_position = RING_BETWEEN_L_AND_U;
 		goto qualify_validity;
 	}
 
 	// Cover error possibilities:
 	if (hall_1_state == hall_2_state)
 	{
-		ring_position = RING_POSITION_UNKNOWN;
+		*ring_position = RING_POSITION_UNKNOWN;
 		goto done;
 	}
 
@@ -290,7 +268,7 @@ determinations.
 	    ((hall_2_state == HALL_OUTPUT_UNDER_VOLTAGE) ||
 	     (hall_2_state == HALL_OUTPUT_OVER_VOLTAGE)))
 	{
-		ring_position = RING_LOCKED;
+		*ring_position = RING_LOCKED;
 		goto done;
 	}
 
@@ -299,7 +277,7 @@ determinations.
 	    ((hall_1_state == HALL_OUTPUT_UNDER_VOLTAGE) ||
 	     (hall_1_state == HALL_OUTPUT_OVER_VOLTAGE)))
 	{
-		ring_position = RING_UNLOCKED;
+		*ring_position = RING_UNLOCKED;
 		goto done;
 	}
 
@@ -308,7 +286,7 @@ determinations.
 	    ((hall_2_state == HALL_OUTPUT_UNDER_VOLTAGE) ||
 	     (hall_2_state == HALL_OUTPUT_OVER_VOLTAGE)))
 	{
-		ring_position = RING_UNLOCKED;
+		*ring_position = RING_UNLOCKED;
 		goto done;
 	}
 
@@ -317,28 +295,49 @@ determinations.
 	    ((hall_1_state == HALL_OUTPUT_UNDER_VOLTAGE) ||
 	     (hall_1_state == HALL_OUTPUT_OVER_VOLTAGE)))
 	{
-		ring_position = RING_LOCKED;
+		*ring_position = RING_LOCKED;
 		goto done;
 	}
 
 qualify_validity:
 	if ((hall_1_state == HALL_OUTPUT_BETWEEN) && (hall_2_state == HALL_OUTPUT_BETWEEN))
 	{
-		ring_position = RING_BETWEEN_FULLY_QUALIFIED;
+		*ring_position = RING_BETWEEN_FULLY_QUALIFIED;
 	}
 
 	if ((hall_1_state == HALL_OUTPUT_ACTIVE) && (hall_2_state == HALL_OUTPUT_INACTIVE))
 	{
-		ring_position = RING_UNLOCKED_FULLY_QUALIFIED;
+		*ring_position = RING_UNLOCKED_FULLY_QUALIFIED;
 	}
 
 	if ((hall_1_state == HALL_OUTPUT_INACTIVE) && (hall_2_state == HALL_OUTPUT_ACTIVE))
 	{
-		ring_position = RING_LOCKED_FULLY_QUALIFIED;
+		*ring_position = RING_LOCKED_FULLY_QUALIFIED;
 	}
 
 done:
 	return rc;
+}
+
+char *ring_pos_to_str(enum lock_ring_position pos)
+{
+        switch (pos) {
+        case RING_LOCKED:
+                return "ring locked";
+        case RING_BETWEEN_L_AND_U:
+                return "ring between";
+        case RING_UNLOCKED:
+                return "ring unlocked";
+        case RING_LOCKED_FULLY_QUALIFIED:
+                return "ring locked (fully qualified)";
+        case RING_BETWEEN_FULLY_QUALIFIED:
+                return "ring between (fully qualified)";
+        case RING_UNLOCKED_FULLY_QUALIFIED:
+                return "ring unlocked (fully qualified)";
+	case RING_POSITION_UNKNOWN:
+        default:
+                return "ring position unknown";
+        }
 }
 
 void arbiter_thread_entry(void *arg1, void *arg2, void *arg3)
@@ -362,9 +361,9 @@ void arbiter_thread_entry(void *arg1, void *arg2, void *arg3)
 		LOG_INF("GPIO set returns status %d", rc);
 #endif
 
-// TODO [ ] Call ring state determination code
-		rc = arbiter_determine_ring_state(ring_position);
-		LOG_INF("Current lock ring position:  %d", ring_position);
+// TODO [x] Call ring state determination code
+		rc = arbiter_determine_ring_state(&ring_position);
+		// LOG_INF("Current lock ring position:  %d", ring_position);
 
 // TODO [ ] Call battery state determination code
 

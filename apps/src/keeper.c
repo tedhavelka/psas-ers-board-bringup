@@ -268,7 +268,6 @@ int32_t ekset_adc_value_in_mv(const enum ers_adc_values_in_mv idx, const uint32_
         case ADC_READING_HALL_2_MV:
 		ekset_hall_2_mv(val);
 		break;
-
 	default:
 		LOG_ERR("Asked to store value for undefined ADC channel %d", idx);
 		return -EINVAL;

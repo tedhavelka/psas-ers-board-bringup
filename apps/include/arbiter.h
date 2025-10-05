@@ -43,6 +43,8 @@ void arbiter_show_hall_state_cutoffs(const struct shell *shell);
 
 // TODO [ ] add API to restore default Hall state cutoff values
 
-int32_t arbiter_determine_ring_state(enum lock_ring_position ring_position);
+int32_t arbiter_determine_ring_state(enum lock_ring_position *ring_position);
+
+char *ring_pos_to_str(enum lock_ring_position pos);
 
 #endif // ERS_ARBITER_H

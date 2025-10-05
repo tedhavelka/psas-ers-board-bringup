@@ -24,6 +24,7 @@ LOG_MODULE_REGISTER(shell_support, LOG_LEVEL_INF);
 
 #include <arbiter.h>
 #include <ers-adc.h>
+#include <ers-util.h>
 #include <keeper.h>
 
 #define SHELL_SUPPORT_THREAD_STACK_SIZE 512
@@ -151,6 +152,32 @@ static int ers_cmd_wrapper_read_adc_all(const struct shell *shell, size_t argc, 
 	return rc;
 }
 
+static int shell_wrapper_show_lock_ring_pos(const struct shell *shell, size_t argc, char *argv[])
+{
+        ARG_UNUSED(shell);
+        ARG_UNUSED(argc);
+        ARG_UNUSED(argv);
+	enum lock_ring_position ring_position = RING_POSITION_UNKNOWN;
+	int32_t rc = arbiter_determine_ring_state(&ring_position);
+	if (rc == 0)
+	{
+		char lbuf[SIZE_SHORT_ERS_MESSAGE] = {0};
+		char *ring_pos_as_str = lbuf;
+		ring_pos_as_str = ring_pos_to_str(ring_position);
+		LOG_INF("Current lock ring position:  %d %s", ring_position, ring_pos_as_str);
+	}
+	else
+	{
+		LOG_INF("Failed lock ring position query, error %d", rc);
+	}
+
+	return rc;
+}
+
+//----------------------------------------------------------------------
+// - SECTION - Zephyr shell command set up
+//----------------------------------------------------------------------
+
 SHELL_STATIC_SUBCMD_SET_CREATE(
 	ers_cmds,
 	SHELL_CMD_ARG(adcall, NULL,
@@ -189,7 +216,15 @@ SHELL_STATIC_SUBCMD_SET_CREATE(
 
 SHELL_CMD_REGISTER(diag, &ers_cmds_diag, "ERS diagnostics", NULL);
 
-// - DEV 1001 BEGIN -
+//======================================================================
+// DEV CODE BEGIN
+//
+// This code added to see if we can define commands beyond a depth of
+// two.  Maybe not important, less easy to type such commands, but we
+// also face something of a flat command name space with only two levels
+// of command depth.  This so given Zephyr shell's default commands
+// which are present in its shell module and don't have an obvious way
+// to be disabled.
 
 static int cmd1_handler(const struct shell *sh, size_t argc, char **argv)
 {
@@ -221,13 +256,15 @@ SHELL_SUBCMD_ADD((section_cmd), cmd2, &sub_section_cmd1, "help for cmd2", cmd2_h
 SHELL_CMD_REGISTER(section_cmd, &sub_section_cmd,
                    "Demo command using section for subcommand registration", NULL);
 
+// DEV CODE END
+//======================================================================
 
 
 // ERS set Hall state cutoff values
 
 SHELL_SUBCMD_SET_CREATE(sub_section_hall, (hall));
 
-/* Create a set of one subcommand for 'hall' command */
+/* Create a set of one subcommands for 'hall' command */
 SHELL_SUBCMD_SET_CREATE(sub_section_hall_set, (hall, set));
 
 SHELL_SUBCMD_ADD((hall), v_under_cutoff, &sub_section_hall_set, "set Hall state voltage under cutoff", shell_wrapper_set_v_under_cutoff, 2, 0);
@@ -242,7 +279,19 @@ SHELL_SUBCMD_ADD((hall), show_cutoffs, &sub_section_hall, "show Hall state cutof
 
 SHELL_CMD_REGISTER(hall, &sub_section_hall, "ERS set and show Hall state cutoff values (in ADC counts)", NULL);
 
-// - DEV 1001 END -
+// - DEV 1005 BEGIN -
+SHELL_SUBCMD_SET_CREATE(sub_section_ring, (ring));
+
+/* Create a set of one subcommands for 'hall' command */
+SHELL_SUBCMD_SET_CREATE(sub_section_ring_set, (ring, set));
+
+SHELL_SUBCMD_ADD((ring), show_position, &sub_section_ring_set, "show lock ring position", shell_wrapper_show_lock_ring_pos, 1, 0);
+
+// TODO [ ] add command to lock ring
+// TODO [ ] add command to unlock ring
+
+SHELL_CMD_REGISTER(ring, &sub_section_ring, "ERS show ring position, (lock and unlock coming)", NULL);
+// - DEV 1005 END -
 
 int32_t ers_init_shell_support(void)
 {

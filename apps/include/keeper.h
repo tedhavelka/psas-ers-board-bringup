@@ -9,18 +9,18 @@
 // something like an index.
 
 enum ers_adc_values {
-        ADC_READING_BATT_READ,
-        ADC_READING_MOTOR_ISENSE,
-        ADC_READING_HALL_1,
-        ADC_READING_HALL_2,
+        ADC_READING_HALL_1,        // ADC_IN0
+        ADC_READING_HALL_2,        // ADC_IN1
+        ADC_READING_BATT_READ,     // ADC_IN8
+        ADC_READING_MOTOR_ISENSE,  // ADC_IN9
         ADC_CHANNEL_COUNT
 };
 
 enum ers_adc_values_in_mv {
-        ADC_READING_BATT_READ_MV = ADC_CHANNEL_COUNT,
-        ADC_READING_MOTOR_ISENSE_MV,
         ADC_READING_HALL_1_MV,
         ADC_READING_HALL_2_MV,
+        ADC_READING_BATT_READ_MV,
+        ADC_READING_MOTOR_ISENSE_MV
 };
 
 #define IDX_START_MV_READINGS ADC_CHANNEL_COUNT
