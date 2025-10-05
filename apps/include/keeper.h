@@ -25,6 +25,10 @@ enum ers_adc_values_in_mv {
 
 #define IDX_START_MV_READINGS ADC_CHANNEL_COUNT
 
+// Module init API
+
+int32_t ers_init_keeper(void);
+
 // Digital inputs
 
 void ekset_iso_drogue(const uint32_t value);

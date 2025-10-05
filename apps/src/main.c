@@ -51,6 +51,9 @@ int main(void)
         rc = ers_init_shell_support();
 	LOG_INF("ERS command initialization returns %d", rc);
 
+	rc = ers_init_keeper();
+	LOG_INF("ERS data \"keeper\" initialization returns %d", rc);
+
 	rc = ers_init_arbiter();
 	LOG_INF("ERS arbitration module init returns %d", rc);
 

@@ -16,6 +16,7 @@ LOG_MODULE_REGISTER(arbiter, LOG_LEVEL_INF);
 #include <ers-dac.h>
 #include <gpio-in.h>
 #include <keeper.h>
+#include <arbiter.h>
 
 //----------------------------------------------------------------------
 // - SECTION - defines
@@ -58,13 +59,26 @@ ADC channels are 12-bit, hence ADC counts range 0..4095.  Define
 K_THREAD_STACK_DEFINE(arbiter_thread_stack, ARBITER_THREAD_STACK_SIZE);
 struct k_thread arbiter_thread_data;
 
+#if 0
 enum hall_sensor_state {
 	HALL_OUTPUT_UNDER_VOLTAGE,
 	HALL_OUTPUT_INACTIVE,
 	HALL_OUTPUT_BETWEEN,
 	HALL_OUTPUT_ACTIVE,
-	HALL_OUTPUT_OVER_VOLTAGE
+	HALL_OUTPUT_OVER_VOLTAGE,
+	HALL_OUTPUT_UNKNOWN
 };
+
+enum lock_ring_position {
+	RING_LOCKED,
+	RING_BETWEEN_L_AND_U,
+	RING_UNLOCKED,
+	RING_LOCKED_FULLY_QUALIFIED,
+	RING_BETWEEN_FULLY_QUALIFIED,
+	RING_UNLOCKED_FULLY_QUALIFIED,
+	RING_POSITION_UNKNOWN
+};
+#endif
 
 static atomic_t hall_reading_v_under_cutoff_fs = ATOMIC_INIT(HALL_READING_V_UNDER_CUTOFF);
 static atomic_t hall_reading_inactive_cutoff_fs = ATOMIC_INIT(HALL_READING_INACTIVE_CUTOFF);
@@ -190,7 +204,7 @@ void arbiter_show_hall_state_cutoffs(const struct shell *shell)
  *   of five states.
  */
 
-enum hall_sensor_state arbiter_adc_reading_to_hall_state(const uint32_t adc_reading)
+enum hall_sensor_state adc_reading_to_hall_state(const uint32_t adc_reading)
 {
 	enum hall_sensor_state sensor_state = HALL_OUTPUT_OVER_VOLTAGE;
 
@@ -217,14 +231,113 @@ enum hall_sensor_state arbiter_adc_reading_to_hall_state(const uint32_t adc_read
 	return sensor_state;
 }
 
-int32_t arbiter_determine_ring_state(void)
+/**
+ * @brief Routine to determine lock ring position.
+ *
+ * @note Calling code is responsible for setting parameter ring_position to
+ *    a sensible starting value, namely 'RING_POSITION_UNKNOWN'.
+ */
+
+int32_t arbiter_determine_ring_state(enum lock_ring_position ring_position)
 {
 	int32_t rc = 0;
-	enum hall_sensor_state hall_1_state;
-	enum hall_sensor_state hall_2_state;
+	uint32_t hall_1_reading = 0;
+	uint32_t hall_2_reading = 0;
+	enum hall_sensor_state hall_1_state = HALL_OUTPUT_UNKNOWN;
+	enum hall_sensor_state hall_2_state = HALL_OUTPUT_UNKNOWN;
+	// enum lock_ring_position ring_position = RING_POSITION_UNKNOWN;
 
-// [ ] Obtain both Hall sensor readings
+	rc = ekget_both_hall_sensors(&hall_1_reading, &hall_1_reading);
+	if (rc != 0)
+	{
+		LOG_ERR("determine ring position could not get hall readings, error %d", rc);
+		goto done;
+	}
 
+	hall_1_state = adc_reading_to_hall_state(hall_1_reading);
+	hall_2_state = adc_reading_to_hall_state(hall_2_reading);
+
+/*
+   Hall2   Vun   Ina   Bet   Act   Ovr 
+Hall1     ----- ----- ----- ----- -----
+-----
+ Vun        x     U     B     L     x   
+ Ina        L     x     B     Lf    L   
+ Bet        B     B     Bf    B     B   
+ Act        U     Uf    B     x     U   
+ Ovr        x     U     B     L     x
+
+Note Uf, Bf, Lf are fully qualified unlocked, in between and lock ring position
+determinations.
+*/
+
+	// Look for possible "between" sensor values pairs first:
+	if ((hall_1_state == HALL_OUTPUT_BETWEEN) || (hall_2_state == HALL_OUTPUT_BETWEEN))
+	{
+		ring_position = RING_BETWEEN_L_AND_U;
+		goto qualify_validity;
+	}
+
+	// Cover error possibilities:
+	if (hall_1_state == hall_2_state)
+	{
+		ring_position = RING_POSITION_UNKNOWN;
+		goto done;
+	}
+
+	// Cover row "Ina" locked positions with partial validity:
+	if ((hall_1_state == HALL_OUTPUT_INACTIVE) &&
+	    ((hall_2_state == HALL_OUTPUT_UNDER_VOLTAGE) ||
+	     (hall_2_state == HALL_OUTPUT_OVER_VOLTAGE)))
+	{
+		ring_position = RING_LOCKED;
+		goto done;
+	}
+
+	// Cover column "Ina" unlocked positions with partial validity:
+	if ((hall_2_state == HALL_OUTPUT_INACTIVE) &&
+	    ((hall_1_state == HALL_OUTPUT_UNDER_VOLTAGE) ||
+	     (hall_1_state == HALL_OUTPUT_OVER_VOLTAGE)))
+	{
+		ring_position = RING_UNLOCKED;
+		goto done;
+	}
+
+	// Cover row "Act" unlocked positions with partial validity:
+	if ((hall_1_state == HALL_OUTPUT_INACTIVE) &&
+	    ((hall_2_state == HALL_OUTPUT_UNDER_VOLTAGE) ||
+	     (hall_2_state == HALL_OUTPUT_OVER_VOLTAGE)))
+	{
+		ring_position = RING_UNLOCKED;
+		goto done;
+	}
+
+	// Cover column "Act" locked positions with partial validity:
+	if ((hall_2_state == HALL_OUTPUT_ACTIVE) &&
+	    ((hall_1_state == HALL_OUTPUT_UNDER_VOLTAGE) ||
+	     (hall_1_state == HALL_OUTPUT_OVER_VOLTAGE)))
+	{
+		ring_position = RING_LOCKED;
+		goto done;
+	}
+
+qualify_validity:
+	if ((hall_1_state == HALL_OUTPUT_BETWEEN) && (hall_2_state == HALL_OUTPUT_BETWEEN))
+	{
+		ring_position = RING_BETWEEN_FULLY_QUALIFIED;
+	}
+
+	if ((hall_1_state == HALL_OUTPUT_ACTIVE) && (hall_2_state == HALL_OUTPUT_INACTIVE))
+	{
+		ring_position = RING_UNLOCKED_FULLY_QUALIFIED;
+	}
+
+	if ((hall_1_state == HALL_OUTPUT_INACTIVE) && (hall_2_state == HALL_OUTPUT_ACTIVE))
+	{
+		ring_position = RING_LOCKED_FULLY_QUALIFIED;
+	}
+
+done:
 	return rc;
 }
 
@@ -235,7 +348,8 @@ void arbiter_thread_entry(void *arg1, void *arg2, void *arg3)
         ARG_UNUSED(arg3);
 
 	static uint32_t loop_count = 0;
-	// int32_t rc = 0;
+	enum lock_ring_position ring_position = RING_POSITION_UNKNOWN;
+	int32_t rc = 0;
 
 	while (1)
 	{
@@ -247,6 +361,13 @@ void arbiter_thread_entry(void *arg1, void *arg2, void *arg3)
 		rc = ers_gpios_set_deploy2((loop_count + 1) % 2);
 		LOG_INF("GPIO set returns status %d", rc);
 #endif
+
+// TODO [ ] Call ring state determination code
+		rc = arbiter_determine_ring_state(ring_position);
+		LOG_INF("Current lock ring position:  %d", ring_position);
+
+// TODO [ ] Call battery state determination code
+
 		loop_count++;
 		k_msleep(ERS_ARBITER_SLEEP_PER_MS);
 	}
@@ -266,13 +387,6 @@ int32_t ers_init_arbiter(void)
 
 	// Initialize Hall sensor ADC count threshold values:
 	// (These values used to determine practical Hall sensor states)
-
-#if 0
-	arbiter_set_v_under_cutoff(HALL_READING_V_UNDER_CUTOFF);
-	arbiter_set_inactive_cutoff(HALL_READING_INACTIVE_CUTOFF);
-	arbiter_set_between_cutoff(HALL_READING_BETWEEN_CUTOFF);
-	arbiter_set_active_cutoff(HALL_READING_ACTIVE_CUTOFF);
-#endif
 	arbiter_set_hall_state_cutoff_defaults();
 
 	k_tid_t arbiter_tid = k_thread_create(&arbiter_thread_data, arbiter_thread_stack,
