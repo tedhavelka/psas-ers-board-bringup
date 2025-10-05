@@ -32,6 +32,9 @@ LOG_MODULE_REGISTER(ers_adc, CONFIG_ERS_ADC_LOG_LEVEL);
 
 #undef DEV_ERS_ADC_REGULAR_REPORTING
 
+// #define ERS_ADC_READ_TIMEOUT 1500
+// static struct k_timeout_t ers_adc_read_timeout K_MSEC(ERS_ADC_READ_TIMEOUT);
+
 //----------------------------------------------------------------------
 // - SECTION - file scoped
 //----------------------------------------------------------------------
@@ -55,7 +58,7 @@ struct k_thread adc_thread_data;
 
 K_THREAD_STACK_DEFINE(adc_thread_stack, ADC_THREAD_STACK_SIZE);
 
-struct k_mutex keeper_mtx;
+struct k_mutex adc_mtx;
 
 static uint32_t hall_adc_count_1_fs = 0;
 static uint32_t hall_adc_count_2_fs = 0;
@@ -79,6 +82,13 @@ int32_t cmd_ers_read_adc_in0(const struct shell *shell)
 int32_t adc_read_channels(const enum ers_adc_values idx_begin,
 			  const enum ers_adc_values idx_end)
 {
+        int32_t rc = k_mutex_lock(&adc_mtx, K_MSEC(1500));
+	if (rc != 0)
+	{
+		LOG_ERR("Failed to lock ADC read channels mutex, error %d", rc);
+		return rc;
+	}
+
 	if ((idx_begin < 0) || (idx_end > ARRAY_SIZE(adc_channels)))
 	{
 		LOG_ERR("Asked to read ADC channel out of range!");
@@ -87,7 +97,6 @@ int32_t adc_read_channels(const enum ers_adc_values idx_begin,
 		return -EINVAL;
 	}
 
-        int32_t rc = 0;
         uint32_t count = 0;
         uint16_t buf;
         struct adc_sequence sequence = { 
@@ -154,6 +163,13 @@ int32_t adc_read_channels(const enum ers_adc_values idx_begin,
 		}
 	}
 
+        rc = k_mutex_unlock(&adc_mtx);
+	if (rc != 0)
+	{
+		LOG_ERR("Failed to unlock ADC read channels mutex, error %d", rc);
+		return rc;
+	}
+
 	return rc;
 }
 
@@ -194,7 +210,7 @@ int32_t adc_init(void)
 {
 	int32_t rc = 0;
 
-	k_mutex_init(&keeper_mtx);
+	k_mutex_init(&adc_mtx);
 
         /* Configure channels individually prior to sampling. */
         for (size_t i = 0U; i < ARRAY_SIZE(adc_channels); i++) {

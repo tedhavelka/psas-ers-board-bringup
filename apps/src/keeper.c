@@ -201,18 +201,29 @@ void ekset_hall_2_mv(const uint32_t value)
 
 int32_t ekset_both_hall_sensors(const uint32_t value_1, const uint32_t value_2)
 {
+	int32_t rc = 0;
 	if (!keeper_init_yes_fs)
 	{
 		LOG_ERR("Data keeper module not initialized!");
 		return -ESRCH;
 	}
 
-// See zephyr/samples/arch/smp/pktqueue/src/main.c
-
 	k_mutex_lock(&hall_sensors_mtx, K_FOREVER);
+	if (rc != 0)
+	{
+		LOG_ERR("Failed to lock mutex for \"store hall sensors values\", error %d", rc);
+		return rc;
+	}
+
 	ekset_hall_1(value_1);
 	ekset_hall_2(value_2);
+
 	k_mutex_unlock(&hall_sensors_mtx);
+	if (rc != 0)
+	{
+		LOG_ERR("Failed to lock mutex for \"store hall sensors values\", error %d", rc);
+		return rc;
+	}
 
 	return 0;
 }
@@ -321,6 +332,8 @@ void ekget_batt_read_dv(uint32_t* value)
 
 int32_t ekget_both_hall_sensors(uint32_t *value_1, uint32_t *value_2)
 {
+	int32_t rc = 0;
+
 	if (!keeper_init_yes_fs)
 	{
 		LOG_ERR("Data keeper module not initialized!");
@@ -330,9 +343,21 @@ int32_t ekget_both_hall_sensors(uint32_t *value_1, uint32_t *value_2)
 	}
 
 	k_mutex_lock(&hall_sensors_mtx, K_FOREVER);
+	if (rc != 0)
+	{
+		LOG_ERR("Failed to lock mutex for \"store hall sensors values\", error %d", rc);
+		return rc;
+	}
+
 	ekget_hall_1_mv(value_1);
 	ekget_hall_2_mv(value_2);
 	k_mutex_unlock(&hall_sensors_mtx);
+	if (rc != 0)
+	{
+		LOG_ERR("Failed to unlock mutex for \"store hall sensors values\", error %d", rc);
+		return rc;
+	}
+
 	return 0;
 }
 
